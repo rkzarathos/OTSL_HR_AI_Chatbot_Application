@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+jinja2
+chromadb
+openai
+gTTS
+langchain
+langchain_community
+pdfminer.six
+PyMuPDF
+pandas
+openpyxl
+azure-storage-blob
+tiktoken
