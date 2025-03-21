@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatbot UI</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    body {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #121212;
+      color: white;
+      text-align: center;
+      flex-direction: column;
+      overflow-y: auto;
+      padding-top: 20px;
+      font-size: 18px; /* increased from 17px */
+    }
+    .container {
+      width: 80%;
+      max-width: 1000px;
+      position: relative;
+      z-index: 1;
+    }
+    .logo {
+      margin-bottom: 20px;
+      width: 150px;
+      height: auto;
+    }
+    button {
+      padding: 10px 15px;
+      border: none;
+      background-color: transparent;
+      color: inherit;
+      cursor: pointer;
+      border-radius: 5px;
+      border: 1px solid currentColor;
+    }
+    .theme-toggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: transparent;
+    }
+    .question-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .collapsible {
+      background-color: transparent;
+      color: inherit;
+      cursor: pointer;
+      padding: 10px;
+      border: 1px solid currentColor;
+      text-align: left;
+      width: 100%;
+      margin-top: 10px;
+    }
+    .collapsible-content {
+      display: none;
+      padding: 10px;
+      background-color: #222;
+      max-height: 350px;
+      overflow-y: auto;
+    }
+    #user-input {
+      width: 100%;
+      padding: 10px;
+      font-size: 18px; /* increased from 16px */
+      margin-bottom: 10px;
+    }
+    .mic-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: white;
+      font-size: 25px; /* increased from 24px */
+      margin-left: 10px;
+    }
+    .mic-button:focus {
+      outline: none;
+    }
+    #audio-player {
+      width: 100%;
+      margin-top: 10px;
+    }
+    .light-mode {
+      background-color: #f9f9f9;
+      color: black;
+    }
+    .light-mode .collapsible-content {
+      background-color: #fff;
+      color: black;
+    }
+    
+    /* Sidebar styles */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      width: 300px;
+      background-color: #1e1e1e;
+      color: white;
+      overflow-y: auto;
+      transition: transform 0.3s ease;
+      padding: 20px;
+      /* Ensure the sidebar covers the toggle buttons */
+      z-index: 1200;
+    }
+    .sidebar.left {
+      left: 0;
+      transform: translateX(-100%);
+    }
+    .sidebar.right {
+      right: 0;
+      transform: translateX(100%);
+    }
+    .sidebar.open {
+      transform: translateX(0);
+    }
+    .close-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 21px; /* increased from 20px */
+      cursor: pointer;
+      position: absolute;
+      top: 10px;
+      /* For left sidebar, default position: top right */
+      right: 10px;
+    }
+    /* For the Feedback sidebar, position close button at top left */
+    #feedback-sidebar .close-btn {
+      left: 10px;
+      right: auto;
+    }
+    .sidebar-toggle {
+      padding: 8px 12px;
+      background-color: #333;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+      position: fixed;
+      top: 20px;
+      /* Toggle buttons below the theme toggle */
+      z-index: 1100;
+    }
+    .sidebar-toggle.left {
+      left: 20px;
+    }
+    .sidebar-toggle.right {
+      right: 20px;
+      top: 60px;
+    }
+    /* Feedback panel elements */
+    #feedback-input {
+      width: 100%;
+      height: 80px;
+      margin-top: 20px;
+      padding: 10px;
+      font-size: 17px; /* increased from 16px */
+      box-sizing: border-box;
+    }
+    #feedback-submit {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background-color: #333;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar Toggle Buttons (remain fixed, but are overlapped when sidebar opens) -->
+  <button class="sidebar-toggle left" onclick="toggleSidebar('chat-history-sidebar')">Chat History</button>
+  <button class="sidebar-toggle right" onclick="toggleSidebar('feedback-sidebar')">Feedback</button>
+  
+  <button class="theme-toggle">Toggle Theme</button>
+  <img id="logo" src="/static/Logo.png" alt="Company Logo" class="logo">
+  
+  <div class="container">
+    <h1>OTSL.ai: Ask me Anything...</h1>
+    <div class="question-buttons">
+      <button onclick="document.getElementById('user-input').value='What\'s the company\'s travel policy?'">What's the company's travel policy?</button>
+      <button onclick="document.getElementById('user-input').value='What is the performance management process?'">What is the performance management process?</button>
+      <button onclick="document.getElementById('user-input').value='How do I request for PTO?'">How do I request for PTO?</button>
+      <button onclick="document.getElementById('user-input').value='Which company do we use for our medical insurance?'">Which company do we use for our medical insurance?</button>
+    </div>
+    <form id="chat-form">
+      <div class="input-container">
+        <input type="text" id="user-input" placeholder="Enter the question..." required>
+        <button type="button" class="mic-button" id="mic-button">🎤</button>
+      </div>
+      <button type="submit">Submit</button>
+    </form>
+    <div id="response-container"></div>
+    <audio id="audio-player" controls></audio>
+    <button class="collapsible">Document Sources</button>
+    <div class="collapsible-content" id="document-sources"></div>
+  </div>
+  
+  <!-- Chat History Sidebar -->
+  <div id="chat-history-sidebar" class="sidebar left">
+    <button class="close-btn" onclick="toggleSidebar('chat-history-sidebar')">×</button>
+    <h3>Chat History</h3>
+    <div id="chat-history-content">
+      <!-- Chat history entries will be dynamically added here -->
+      <p>No chat history available.</p>
+    </div>
+  </div>
+  
+  <!-- Feedback Sidebar -->
+  <div id="feedback-sidebar" class="sidebar right">
+    <button class="close-btn" onclick="toggleSidebar('feedback-sidebar')">×</button>
+    <h3>Feedback</h3>
+    <div id="feedback-content">
+      <p>Please provide your feedback for the last response:</p>
+      <textarea id="feedback-input" placeholder="Enter your feedback here..."></textarea>
+      <button id="feedback-submit">Submit Feedback</button>
+      <div id="feedback-status"></div>
+    </div>
+  </div>
+  
+  <script>
+    // Global variables to store current question and answer for feedback
+    let currentQuestion = "";
+    let currentAnswer = "";
+    
+    // Theme Toggle Functionality
+    document.querySelector(".theme-toggle").addEventListener("click", function() {
+      document.body.classList.toggle("light-mode");
+    });
+    
+    // Collapsible Section Functionality for Document Sources
+    document.querySelector(".collapsible").addEventListener("click", function() {
+      let content = document.getElementById("document-sources");
+      content.style.display = (content.style.display === "block") ? "none" : "block";
+    });
+    
+    // Sidebar toggle function
+    function toggleSidebar(id) {
+      let sidebar = document.getElementById(id);
+      sidebar.classList.toggle("open");
+    }
+    
+    // Voice Recognition Functionality
+    document.getElementById("mic-button").addEventListener("click", function() {
+      let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = "en-US";
+      recognition.start();
+      recognition.onresult = function(event) {
+        let transcript = event.results[0][0].transcript;
+        document.getElementById("user-input").value = transcript;
+      };
+      recognition.onerror = function(event) {
+        console.error("Speech recognition error", event);
+        alert("Voice recognition error. Please try again.");
+      };
+    });
+    
+    // Chatbot Form Handling
+    document.getElementById("chat-form").addEventListener("submit", async function(event) {
+      event.preventDefault();
+      let userInput = document.getElementById("user-input").value;
+      currentQuestion = userInput; // set the current question for feedback
+      let responseContainer = document.getElementById("response-container");
+      let audioPlayer = document.getElementById("audio-player");
+      let docSources = document.getElementById("document-sources");
+      
+      // Clear previous responses, audio, and document sources
+      responseContainer.innerHTML = "";
+      audioPlayer.src = "";
+      docSources.innerHTML = "";
+      
+      responseContainer.innerHTML = "<p>Loading...</p>";
+      
+      try {
+        let response = await fetch("/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: userInput, chat_history: [] })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+        
+        responseContainer.innerHTML = "<p><strong>Answer:</strong> </p><p id='chat-response'></p>";
+        let chatResponse = document.getElementById("chat-response");
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let fullResponse = "";
+        let sources = [];
+        let audioUrl = "";
+        
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          let chunk = decoder.decode(value, { stream: true });
+          let lines = chunk.trim().split("\n");
+          for (let line of lines) {
+            if (!line) continue;
+            let data;
+            try {
+              data = JSON.parse(line);
+            } catch (e) {
+              console.error("Error parsing JSON:", line);
+              continue;
+            }
+            if (data.type === "text") {
+              fullResponse += data.content;
+              chatResponse.innerHTML = fullResponse;
+            } else if (data.type === "metadata") {
+              sources = data.sources;
+              audioUrl = data.audio_url;
+            }
+          }
+        }
+        
+        if (audioUrl) {
+          audioPlayer.src = audioUrl;
+        }
+        
+        if (sources.length > 0) {
+          docSources.innerHTML = "<h3>Sources:</h3>";
+          sources.forEach(source => {
+            docSources.innerHTML += `<p>${source}</p>`;
+          });
+        }
+        
+        currentAnswer = fullResponse; // store the answer for feedback
+        
+        // Update Chat History Sidebar with the new Q&A
+        updateChatHistory(currentQuestion, currentAnswer);
+        
+        // Optionally, clear the user input field
+        document.getElementById("user-input").value = "";
+      } catch (error) {
+        responseContainer.innerHTML = `<p style='color: red;'>Error: ${error.message}</p>`;
+      }
+    });
+    
+    // Function to update chat history sidebar
+    function updateChatHistory(question, answer) {
+      let historyContainer = document.getElementById("chat-history-content");
+      // Remove placeholder text if it exists
+      if (historyContainer.innerHTML.includes("No chat history available.")) {
+        historyContainer.innerHTML = "";
+      }
+      let entry = document.createElement("div");
+      entry.style.borderBottom = "1px solid #444";
+      entry.style.marginBottom = "10px";
+      entry.style.paddingBottom = "10px";
+      entry.innerHTML = `<strong>Q:</strong> ${question}<br><strong>A:</strong> ${answer}`;
+      historyContainer.appendChild(entry);
+    }
+    
+    // Feedback submission handling
+    document.getElementById("feedback-submit").addEventListener("click", async function() {
+      let feedbackInput = document.getElementById("feedback-input");
+      let feedbackText = feedbackInput.value.trim();
+      let feedbackStatus = document.getElementById("feedback-status");
+      
+      if (!feedbackText) {
+        feedbackStatus.innerHTML = "<p style='color: red;'>Please enter feedback.</p>";
+        return;
+      }
+      
+      try {
+        let response = await fetch("/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: currentQuestion,
+            full_response: currentAnswer,
+            feedback: feedbackText
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status} ${response.statusText}`);
+        }
+        
+        let result = await response.json();
+        feedbackStatus.innerHTML = `<p style='color: green;'>${result.message || 'Feedback submitted successfully.'}</p>`;
+        feedbackInput.value = ""; // Clear the text box after submission
+      } catch (error) {
+        feedbackStatus.innerHTML = `<p style='color: red;'>${error.message}</p>`;
+      }
+    });
+  </script>
+</body>
+</html>
