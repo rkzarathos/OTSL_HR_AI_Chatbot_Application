@@ -8,10 +8,10 @@ ENV PYTHONUNBUFFERED=1
 # Set the working directory in the container
 WORKDIR /app
 
-COPY . /app
-
-# Copy the requirements file and install dependencies
+# Copy only the requirements file first to leverage caching
 COPY requirements.txt .
+
+# Install dependencies
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy the rest of your application code into the container
