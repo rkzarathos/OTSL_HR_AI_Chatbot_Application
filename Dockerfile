@@ -21,4 +21,4 @@ COPY . .
 EXPOSE 8000
 
 # Start the app using Uvicorn, binding to 0.0.0.0 to allow external access
-CMD ["uvicorn", "app2025:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app", "--host", "0.0.0.0", "--port", "8000"]
