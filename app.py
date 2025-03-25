@@ -29,7 +29,7 @@ from openpyxl import load_workbook
 
 
 azure_connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
-print(azure_connection_string)
+print("AZURE_STORAGE_CONNECTION_STRING: ",azure_connection_string)
 if not azure_connection_string:
     raise ValueError("AZURE_STORAGE_CONNECTION_STRING environment variable is not set.")
 
