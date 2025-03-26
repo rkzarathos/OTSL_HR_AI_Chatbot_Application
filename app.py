@@ -115,7 +115,6 @@ os.makedirs(CHROMA_DB_PATH, exist_ok=True)
 
 embedding_function = OpenAIEmbeddings(openai_api_key=openai_api_key)
 vectorstore = Chroma(persist_directory=CHROMA_DB_PATH, embedding_function=embedding_function)
-vectorstore.delete_collection()
 
 # Load and process documents from the same location as the code file
 
@@ -133,9 +132,12 @@ for doc in DOCUMENTS:
             datasource.extend(PyMuPDFLoader(doc_path).load())
 
 # Split documents and store in ChromaDB
+print("Collected all documents")
 text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(chunk_size=1000, chunk_overlap=300)
 docs = text_splitter.split_documents(datasource)
+print("Documents Split")
 vectorstore.add_documents(docs)
+print("Documents added to Vector Store")
 
 
 # Initialize Chat Model
