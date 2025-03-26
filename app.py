@@ -123,7 +123,8 @@ def clear_directory(directory):
 CHROMA_DB_PATH = os.getenv("CHROMADB_PATH", "./chromadb")
 if os.path.exists(CHROMA_DB_PATH):
     clear_directory(CHROMA_DB_PATH)
-os.makedirs(CHROMA_DB_PATH, exist_ok=True)
+else:
+    os.makedirs(CHROMA_DB_PATH, exist_ok=True)
 
 embedding_function = OpenAIEmbeddings(openai_api_key=openai_api_key)
 vectorstore = Chroma(persist_directory=CHROMA_DB_PATH, embedding_function=embedding_function)
