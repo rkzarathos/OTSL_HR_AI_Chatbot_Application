@@ -25,6 +25,7 @@ from langchain.chains import LLMChain
 from azure.storage.blob import BlobServiceClient
 import pandas as pd
 from openpyxl import load_workbook
+import shutil
 
 
 
@@ -109,6 +110,8 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 # Initialize ChromaDB with persistence
 
 CHROMA_DB_PATH = os.getenv("CHROMADB_PATH", "./chromadb")
+if os.path.exists(CHROMA_DB_PATH):
+    shutil.rmtree(CHROMA_DB_PATH)
 os.makedirs(CHROMA_DB_PATH, exist_ok=True)
 
 embedding_function = OpenAIEmbeddings(openai_api_key=openai_api_key)
