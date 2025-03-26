@@ -161,6 +161,14 @@ retriever = vectorstore.as_retriever()
 # Session-based storage
 session_data = {}
 
+@app.get("/logo")
+async def get_logo():
+    # Adjust the file name as needed.
+    logo_path = os.path.join(DOCUMENTS_DIR, "Logo.png")
+    if not os.path.exists(logo_path):
+        raise HTTPException(status_code=404, detail="Logo not found")
+    return FileResponse(logo_path, media_type="image/png")
+
 async def sanitize_filename(filename):
     return re.sub(r'[^a-zA-Z0-9_\-\.]', '_', filename)
 
