@@ -36,9 +36,6 @@ if not azure_connection_string:
 
 blob_service_client = BlobServiceClient.from_connection_string(azure_connection_string)
 
-AUDIO_CONTAINER = "audio"
-CHAT_CONTAINER = "chathistory"
-
 try:
     blob_service_client.create_container(AUDIO_CONTAINER)
 except Exception as e:
@@ -98,14 +95,11 @@ app = FastAPI()
 templates = Jinja2Templates(directory=".")
 
 # Ensure static directory exists
-STATIC_DIR = "static"
-CHAT_LOG_DIR = "chat_logs"
-AUDIO_DIR = os.path.join(STATIC_DIR, "audio")
-os.makedirs(AUDIO_DIR, exist_ok=True)
-os.makedirs(CHAT_LOG_DIR, exist_ok=True)
 
-# Serve static files (CSS, JS, images, audio)
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+#CHAT_LOG_DIR = "chat_logs"
+#AUDIO_DIR = os.path.join(STATIC_DIR, "audio")
+#os.makedirs(AUDIO_DIR, exist_ok=True)
+#os.makedirs(CHAT_LOG_DIR, exist_ok=True)
 
 # Initialize ChromaDB with persistence
 
@@ -119,6 +113,8 @@ vectorstore = Chroma(persist_directory=CHROMA_DB_PATH, embedding_function=embedd
 # Load and process documents from the same location as the code file
 
 DOCUMENTS_DIR = os.getenv("DOCUMENTS_PATH", os.path.join(os.getcwd(), "documents"))
+CHAT_LOG_DIR = os.getenv("CHATHISTORY_PATH", os.path.join(os.getcwd(), "chathistory"))
+AUDIO_DIR = os.getenv("AUDIO_PATH", os.path.join(os.getcwd(), "audio"))
 
 DOCUMENTS = ["doc1.pdf", "doc2.pdf", "doc3.pdf", "doc4.pdf", "doc5.pdf", "doc6.pdf", "doc7.pdf", "doc8.pdf", "doc9.pdf"]
 datasource = []
