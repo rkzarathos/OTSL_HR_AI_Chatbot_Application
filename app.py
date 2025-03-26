@@ -36,18 +36,20 @@ if not azure_connection_string:
 
 blob_service_client = BlobServiceClient.from_connection_string(azure_connection_string)
 
-try:
-    blob_service_client.create_container(AUDIO_CONTAINER)
-except Exception as e:
-    print("Audio container likely exists:", e)
+#try:
+#    blob_service_client.create_container(AUDIO_CONTAINER)
+#except Exception as e:
+#    print("Audio container likely exists:", e)
 
-try:
-    blob_service_client.create_container(CHAT_CONTAINER)
-except Exception as e:
-    print("Chat history container likely exists:", e)
+#try:
+#    blob_service_client.create_container(CHAT_CONTAINER)
+#except Exception as e:
+#    print("Chat history container likely exists:", e)
 
 
-
+DOCUMENTS_DIR = os.getenv("DOCUMENTS_PATH", os.path.join(os.getcwd(), "documents"))
+CHAT_LOG_DIR = os.getenv("CHATHISTORY_PATH", os.path.join(os.getcwd(), "chathistory"))
+AUDIO_DIR = os.getenv("AUDIO_PATH", os.path.join(os.getcwd(), "audio"))
 
 
 CHAT_HISTORY_FILE = "chat_history.xlsx"
@@ -112,9 +114,7 @@ vectorstore = Chroma(persist_directory=CHROMA_DB_PATH, embedding_function=embedd
 
 # Load and process documents from the same location as the code file
 
-DOCUMENTS_DIR = os.getenv("DOCUMENTS_PATH", os.path.join(os.getcwd(), "documents"))
-CHAT_LOG_DIR = os.getenv("CHATHISTORY_PATH", os.path.join(os.getcwd(), "chathistory"))
-AUDIO_DIR = os.getenv("AUDIO_PATH", os.path.join(os.getcwd(), "audio"))
+
 
 DOCUMENTS = ["doc1.pdf", "doc2.pdf", "doc3.pdf", "doc4.pdf", "doc5.pdf", "doc6.pdf", "doc7.pdf", "doc8.pdf", "doc9.pdf"]
 datasource = []
