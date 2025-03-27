@@ -200,22 +200,23 @@ async def ask_question(request: Request):
         
         # Stream response while collecting full text
         async def response_generator():
-            full_response = ""
-            async for chunk in llm_chain.astream({"context": context, "question": question}):
-                text_chunk = chunk.get("text", "")
-                full_response += text_chunk
-                yield json.dumps({"type": "text", "content": text_chunk}) + "\n\n"
-                await asyncio.sleep(0)
-
-
-            # Generate audio after the response is fully collected
-            save_to_excel(question, full_response)
-            sanitized_filename = await sanitize_filename(question)
-            audio_url = await generate_audio(full_response, sanitized_filename)
-            sources = [doc.page_content for doc in relevant_docs]
-            yield json.dumps({"type": "metadata", "sources": sources, "audio_url": audio_url}) + "\n\n"
-        
-        return StreamingResponse(response_generator(), media_type="application/x-ndjson")
+            try:
+                full_response = ""
+                async for chunk in llm_chain.astream({"context": context, "question": question}):
+                    text_chunk = chunk.get("text", "")
+                    full_response += text_chunk
+                    yield json.dumps({"type": "text", "content": text_chunk}) + "\n\n"
+                    await asyncio.sleep(0)
+                
+                # Process audio generation and metadata
+                save_to_excel(question, full_response)
+                sanitized_filename = await sanitize_filename(question)
+                audio_url = await generate_audio(full_response, sanitized_filename)
+                sources = [doc.page_content for doc in relevant_docs]
+                yield json.dumps({"type": "metadata", "sources": sources, "audio_url": audio_url}) + "\n\n"
+            except Exception as e:
+                print(f"Error in streaming generator: {e}")
+                yield json.dumps({"type": "error", "content": str(e)}) + "\n\n"
     
     except Exception as e:
         print(f"Error processing request: {e}")
