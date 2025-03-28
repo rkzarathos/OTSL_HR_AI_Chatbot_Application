@@ -131,7 +131,7 @@ for doc in DOCUMENTS:
 
 # Split documents and store in ChromaDB
 print("Collected all documents")
-text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(chunk_size=1000, chunk_overlap=300)
+text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(chunk_size=600, chunk_overlap=150)
 docs = text_splitter.split_documents(datasource)
 print("Documents Split")
 vectorstore.add_documents(docs)
