@@ -203,7 +203,7 @@ async def ask_question(request: Request):
             try:
                 full_response = ""
                 async for chunk in llm_chain.astream({"context": context, "question": question}):
-                    text_chunk = chunk.get("text", "")
+                    text_chunk = chunk.get("text", "\n")
                     full_response += text_chunk
                     yield json.dumps({"type": "text", "content": text_chunk}) + "\n\n"
                     await asyncio.sleep(0)
@@ -217,6 +217,8 @@ async def ask_question(request: Request):
             except Exception as e:
                 print(f"Error in streaming generator: {e}")
                 yield json.dumps({"type": "error", "content": str(e)}) + "\n\n"
+
+        return StreamingResponse(response_generator(), media_type="application/x-ndjson")
     
     except Exception as e:
         print(f"Error processing request: {e}")
