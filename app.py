@@ -168,7 +168,9 @@ async def get_logo():
     return FileResponse(logo_path, media_type="image/png")
 
 async def sanitize_filename(filename):
-    return re.sub(r'[^a-zA-Z0-9_\-\.]', '_', filename)
+    sanitized_filename = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', filename)
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    return f"{timestamp}_{sanitized_filename}"
 
 # Function to generate audio from text
 async def generate_audio(text: str, filename: str):
