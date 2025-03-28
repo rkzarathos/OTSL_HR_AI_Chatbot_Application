@@ -144,7 +144,7 @@ print("Documents added to Vector Store")
 
 # Initialize Chat Model
 #chat_model = ChatOpenAI(model_name="gpt-4-turbo", temperature=0.4)
-chat_model = ChatOpenAI(model_name="gpt-4.5-preview-2025-02-27", temperature=0.4)
+chat_model = ChatOpenAI(model_name="gpt-4-turbo", temperature=0.4)
 
 prompt_template=PromptTemplate(
         input_variables=["context","question"],
