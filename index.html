@@ -26,11 +26,22 @@
       position: relative;
       z-index: 1;
     }
-    .logo {
+
+    /* --- Logo wrapper (rounded white box) --- */
+    .logo-wrapper {
+      display: inline-block;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 10px 14px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
       margin-bottom: 20px;
+    }
+    .logo {
       width: 150px;
       height: auto;
+      display: block;
     }
+
     button {
       padding: 10px 15px;
       border: none;
@@ -110,8 +121,7 @@
       overflow-y: auto;
       transition: transform 0.3s ease;
       padding: 20px;
-      /* Ensure the sidebar covers the toggle buttons */
-      z-index: 1200;
+      z-index: 1200; /* covers toggle buttons */
     }
     .sidebar.left {
       left: 0;
@@ -132,7 +142,6 @@
       cursor: pointer;
       position: absolute;
       top: 10px;
-      /* For left sidebar, default position: top right */
       right: 10px;
     }
     /* For the Feedback sidebar, position close button at top left */
@@ -149,16 +158,20 @@
       border-radius: 5px;
       position: fixed;
       top: 20px;
-      /* Toggle buttons below the theme toggle */
       z-index: 1100;
     }
     .sidebar-toggle.left {
       left: 20px;
     }
+    /* --- Lower the Feedback toggle to avoid overlap --- */
     .sidebar-toggle.right {
       right: 20px;
-      top: 60px;
+      top: 100px; /* was 60px */
     }
+    @media (max-width: 480px) {
+      .sidebar-toggle.right { top: 130px; }
+    }
+
     /* Feedback panel elements */
     #feedback-input {
       width: 100%;
@@ -177,6 +190,59 @@
       cursor: pointer;
       border-radius: 5px;
     }
+
+    /* --- Terms & Conditions Modal --- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000; /* sits above everything */
+    }
+    .modal {
+      background: #ffffff;
+      color: #111;
+      width: 90%;
+      max-width: 820px;
+      max-height: 80vh;
+      border-radius: 14px;
+      padding: 20px 22px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+      overflow: hidden;
+      text-align: left;
+    }
+    .modal h2 { margin: 0 0 10px; }
+    .terms-text {
+      background: #f5f5f5;
+      color: #111;
+      border-radius: 10px;
+      padding: 12px;
+      max-height: 45vh;
+      overflow-y: auto;
+      line-height: 1.45;
+      font-size: 15px;
+    }
+    .accept-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    #accept-button {
+      margin-top: 10px;
+      padding: 10px 16px;
+      background: #333;
+      color: #fff;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+    #accept-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -185,7 +251,11 @@
   <button class="sidebar-toggle right" onclick="toggleSidebar('feedback-sidebar')">Feedback</button>
   
   <button class="theme-toggle">Toggle Theme</button>
-  <img src="/logo" alt="Company Logo" class="logo">
+
+  <!-- Logo in rounded white container -->
+  <div class="logo-wrapper">
+    <img src="/logo" alt="Company Logo" class="logo">
+  </div>
   
   <div class="container">
     <h1>OTSL.ai: Ask me Anything...</h1>
@@ -213,7 +283,6 @@
     <button class="close-btn" onclick="toggleSidebar('chat-history-sidebar')">×</button>
     <h3>Chat History</h3>
     <div id="chat-history-content">
-      <!-- Chat history entries will be dynamically added here -->
       <p>No chat history available.</p>
     </div>
   </div>
@@ -229,12 +298,48 @@
       <div id="feedback-status"></div>
     </div>
   </div>
+
+  <!-- Terms & Conditions Modal (shown every session) -->
+  <div id="terms-modal" class="modal-overlay" aria-modal="true" role="dialog">
+    <div class="modal">
+      <h2 style="text-align:center">Terms &amp; Conditions</h2>
+      <div class="terms-text" id="terms-text">
+        <h4 style="text-align:center">General Information Only</h4>
+        <p>The chatbot is provided for general informational purposes only.</p>
+        <p>Information shared may not reflect the most current laws, regulations, or Company policies.</p>
+        <p>The chatbot’s responses are not legal, medical, or financial advice.</p>
+
+        <h4 style="text-align:center">No Rights Created</h4>
+        <p>Use of this chatbot does not create any rights, guarantees, or obligations for the Company, its employees, or any other party.</p>
+        <p>Employees should not rely solely on this tool when making employment, benefits, or policy-related decisions.</p>
+
+        <h4 style="text-align:center">No Rights Created</h4>
+        <p>Always confirm details with Human Resources and review official Company policies and plan documents before making decisions.</p>
+        <p>The Company reserves the right to interpret, modify, or update its policies at any time.</p>
+
+        <h4 style="text-align:center">Conversation Records</h4>
+        <p>Chatbot conversations may be monitored and logged for training, compliance, and quality assurance.</li>
+        <p>These records are not part of your official personnel file and will not be used as the basis for employment decisions.</li>
+        <p>For matters that require formal documentation, please contact Human Resources directly.</li>
+
+      </div>
+      <label class="accept-row">
+        <input type="checkbox" id="accept-checkbox"> I have read and accept the Terms &amp; Conditions
+      </label>
+      <button id="accept-button" disabled>Accept &amp; Continue</button>
+    </div>
+  </div>
   
   <script>
     // Global variables to store current question and answer for feedback
     let currentQuestion = "";
     let currentAnswer = "";
-    
+    // Terms flag (forces acceptance every session/page load)
+    let termsAccepted = false;
+
+    // Prevent body scroll while modal open
+    document.body.style.overflow = 'hidden';
+
     // Theme Toggle Functionality
     document.querySelector(".theme-toggle").addEventListener("click", function() {
       document.body.classList.toggle("light-mode");
@@ -246,14 +351,22 @@
       content.style.display = (content.style.display === "block") ? "none" : "block";
     });
     
-    // Sidebar toggle function
+    // Sidebar toggle function (blocked until T&C accepted)
     function toggleSidebar(id) {
+      if (!termsAccepted) {
+        alert("Please accept the Terms & Conditions to use the chatbot.");
+        return;
+      }
       let sidebar = document.getElementById(id);
       sidebar.classList.toggle("open");
     }
     
-    // Voice Recognition Functionality
+    // Voice Recognition Functionality (blocked until T&C accepted)
     document.getElementById("mic-button").addEventListener("click", function() {
+      if (!termsAccepted) {
+        alert("Please accept the Terms & Conditions to use the chatbot.");
+        return;
+      }
       let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
       recognition.lang = "en-US";
       recognition.start();
@@ -267,9 +380,13 @@
       };
     });
     
-    // Chatbot Form Handling
+    // Chatbot Form Handling (blocked until T&C accepted)
     document.getElementById("chat-form").addEventListener("submit", async function(event) {
       event.preventDefault();
+      if (!termsAccepted) {
+        alert("Please accept the Terms & Conditions to start chatting.");
+        return;
+      }
       let userInput = document.getElementById("user-input").value;
       currentQuestion = userInput; // set the current question for feedback
       let responseContainer = document.getElementById("response-container");
@@ -339,11 +456,7 @@
         }
         
         currentAnswer = fullResponse; // store the answer for feedback
-        
-        // Update Chat History Sidebar with the new Q&A
         updateChatHistory(currentQuestion, currentAnswer);
-        
-        // Optionally, clear the user input field
         document.getElementById("user-input").value = "";
       } catch (error) {
         responseContainer.innerHTML = `<p style='color: red;'>Error: ${error.message}</p>`;
@@ -353,7 +466,6 @@
     // Function to update chat history sidebar
     function updateChatHistory(question, answer) {
       let historyContainer = document.getElementById("chat-history-content");
-      // Remove placeholder text if it exists
       if (historyContainer.innerHTML.includes("No chat history available.")) {
         historyContainer.innerHTML = "";
       }
@@ -367,6 +479,10 @@
     
     // Feedback submission handling
     document.getElementById("feedback-submit").addEventListener("click", async function() {
+      if (!termsAccepted) {
+        alert("Please accept the Terms & Conditions to use the chatbot.");
+        return;
+      }
       let feedbackInput = document.getElementById("feedback-input");
       let feedbackText = feedbackInput.value.trim();
       let feedbackStatus = document.getElementById("feedback-status");
@@ -398,7 +514,21 @@
         feedbackStatus.innerHTML = `<p style='color: red;'>${error.message}</p>`;
       }
     });
+
+    /* --- Terms & Conditions modal wiring --- */
+    const termsModal = document.getElementById("terms-modal");
+    const acceptCheckbox = document.getElementById("accept-checkbox");
+    const acceptButton = document.getElementById("accept-button");
+
+    acceptCheckbox.addEventListener("change", () => {
+      acceptButton.disabled = !acceptCheckbox.checked;
+    });
+
+    acceptButton.addEventListener("click", () => {
+      termsAccepted = true;
+      termsModal.style.display = "none";
+      document.body.style.overflow = 'auto';
+    });
   </script>
 </body>
 </html>
-
