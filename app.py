@@ -67,51 +67,62 @@ _RE_UL         = re.compile(r"^\s*([*+\-])\s+", re.M)
 _RE_OL         = re.compile(r"^\s*\d+[\.)]\s+", re.M)
 _RE_TABLE_RULE = re.compile(r"^\s*\|?\s*[:\-| ]+\s*\|?\s*$", re.M)  # ---|:--- lines
 _RE_HTML       = re.compile(r"<[^>]+>")
+_RE_TIME_COLON = re.compile(r'(?<=\d):(?=\d)')
+_RE_URL = re.compile(r'\b(?:https?|ftp)://\S+')
 
 
-def markdown_to_speech_text(md: str) -> str:
-    """Strip Markdown/HTML so TTS won't spell out asterisks or backticks."""
+def markdown_to_speech_text(md: str, normalize_colons: bool = True, colon_replacement: str = " — ") -> str:
+    """Strip Markdown/HTML so TTS won't spell out formatting, and (optionally) turn non-time colons into a pause."""
     if not md:
         return ""
 
     t = md
 
-    # 1) Remove fenced code blocks entirely (they aren't useful to read aloud)
+    # Remove fenced code blocks entirely
     t = _RE_FENCE.sub("", t)
-
-    # 2) Inline code: keep just the content
+    # Inline code: keep content
     t = _RE_INLINECODE.sub(r"\1", t)
-
-    # 3) Images & links: keep human text (alt/text), drop URLs
+    # Images: keep alt text
     t = _RE_IMG.sub(lambda m: (m.group(1) or ""), t)
+    # Links: keep link text only
     t = _RE_LINK.sub(r"\1", t)
+    # Also strip any raw URLs that appear in plain text
+    t = _RE_URL.sub("", t)
 
-    # 4) Styling markers
+    # Styling markers
     t = _RE_BI.sub(r"\2", t)
     t = _RE_STRIKE.sub(r"\1", t)
 
-    # 5) Block-level prefixes
+    # Block-level prefixes
     t = _RE_HEADERS.sub("", t)
     t = _RE_BLOCKQUOTE.sub("", t)
 
-    # 6) Lists
-    #    Convert unordered list bullets to a readable bullet; ordered lists lose the number
+    # Lists → readable bullets
     t = _RE_UL.sub("• ", t)
     t = _RE_OL.sub("", t)
 
-    # 7) Tables: drop separator rules; replace pipes with spaced separators
+    # Tables → readable separators
     t = _RE_TABLE_RULE.sub("", t)
-    t = re.sub(r"^\s*\|\s*|\s*\|\s*$", "", t, flags=re.M)   # trim leading/trailing pipes
-    t = re.sub(r"\s*\|\s*", " — ", t)                       # middle pipes → dash
+    t = re.sub(r"^\s*\|\s*|\s*\|\s*$", "", t, flags=re.M)
+    t = re.sub(r"\s*\|\s*", " — ", t)
 
-    # 8) Strip HTML and unescape entities
+    # Strip HTML and unescape entities
     t = _RE_HTML.sub("", t)
     t = html.unescape(t)
 
-    # 9) Cleanup whitespace
+    # >>> NEW: normalize non-time, non-URL colons for better TTS rhythm <<<
+    if normalize_colons:
+        placeholder = "\uFFFF"  # mask time colons temporarily
+        masked = _RE_TIME_COLON.sub(placeholder, t)
+        # Replace remaining single colons (avoid "::")
+        masked = re.sub(r'(?<!:):(?!:)', colon_replacement, masked)
+        t = masked.replace(placeholder, ":")
+
+    # Whitespace cleanup
     t = re.sub(r"[ \t]+\n", "\n", t)
     t = re.sub(r"\n{3,}", "\n\n", t)
     return t.strip()
+
 
 
 def save_to_excel(query, response, feedback=None):
@@ -332,5 +343,6 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
