@@ -7,7 +7,7 @@ from chromadb.utils import embedding_functions
 import openai
 import asyncio
 import os
-import re
+import re, html
 import base64
 import json
 import csv
@@ -34,7 +34,7 @@ import uuid
 session_id = str(uuid.uuid4())
 
 azure_connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
-print("AZURE_STORAGE_CONNECTION_STRING: ",azure_connection_string)
+# print("AZURE_STORAGE_CONNECTION_STRING: ",azure_connection_string)
 if not azure_connection_string:
     raise ValueError("AZURE_STORAGE_CONNECTION_STRING environment variable is not set.")
 
@@ -54,6 +54,65 @@ blob_service_client = BlobServiceClient.from_connection_string(azure_connection_
 
 CHAT_LOG_DIR = os.getenv("CHATHISTORY_PATH", os.path.join(os.getcwd(), "chathistory"))
 CHAT_HISTORY_FILE = os.path.join(CHAT_LOG_DIR, f"{session_id}_chat_history.xlsx")
+
+_RE_FENCE      = re.compile(r"```.*?```", re.S)
+_RE_INLINECODE = re.compile(r"`([^`]*)`")
+_RE_IMG        = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
+_RE_LINK       = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+_RE_BI         = re.compile(r"(\*\*|__|\*|_)([^*_].*?)\1")  # bold/italic markers
+_RE_STRIKE     = re.compile(r"~~(.*?)~~")
+_RE_HEADERS    = re.compile(r"^\s{0,3}#{1,6}\s*", re.M)
+_RE_BLOCKQUOTE = re.compile(r"^\s{0,3}>\s?", re.M)
+_RE_UL         = re.compile(r"^\s*([*+\-])\s+", re.M)
+_RE_OL         = re.compile(r"^\s*\d+[\.)]\s+", re.M)
+_RE_TABLE_RULE = re.compile(r"^\s*\|?\s*[:\-| ]+\s*\|?\s*$", re.M)  # ---|:--- lines
+_RE_HTML       = re.compile(r"<[^>]+>")
+
+
+def markdown_to_speech_text(md: str) -> str:
+    """Strip Markdown/HTML so TTS won't spell out asterisks or backticks."""
+    if not md:
+        return ""
+
+    t = md
+
+    # 1) Remove fenced code blocks entirely (they aren't useful to read aloud)
+    t = _RE_FENCE.sub("", t)
+
+    # 2) Inline code: keep just the content
+    t = _RE_INLINECODE.sub(r"\1", t)
+
+    # 3) Images & links: keep human text (alt/text), drop URLs
+    t = _RE_IMG.sub(lambda m: (m.group(1) or ""), t)
+    t = _RE_LINK.sub(r"\1", t)
+
+    # 4) Styling markers
+    t = _RE_BI.sub(r"\2", t)
+    t = _RE_STRIKE.sub(r"\1", t)
+
+    # 5) Block-level prefixes
+    t = _RE_HEADERS.sub("", t)
+    t = _RE_BLOCKQUOTE.sub("", t)
+
+    # 6) Lists
+    #    Convert unordered list bullets to a readable bullet; ordered lists lose the number
+    t = _RE_UL.sub("• ", t)
+    t = _RE_OL.sub("", t)
+
+    # 7) Tables: drop separator rules; replace pipes with spaced separators
+    t = _RE_TABLE_RULE.sub("", t)
+    t = re.sub(r"^\s*\|\s*|\s*\|\s*$", "", t, flags=re.M)   # trim leading/trailing pipes
+    t = re.sub(r"\s*\|\s*", " — ", t)                       # middle pipes → dash
+
+    # 8) Strip HTML and unescape entities
+    t = _RE_HTML.sub("", t)
+    t = html.unescape(t)
+
+    # 9) Cleanup whitespace
+    t = re.sub(r"[ \t]+\n", "\n", t)
+    t = re.sub(r"\n{3,}", "\n\n", t)
+    return t.strip()
+
 
 def save_to_excel(query, response, feedback=None):
     """Append a query-response pair to an Excel file."""
@@ -81,10 +140,10 @@ def save_to_excel(query, response, feedback=None):
         print(f"Error saving to Excel: {e}")
 
 # Load environment variables
-openai_api_key = os.getenv("OPENAI_API_KEY")
-if not openai_api_key:
-    raise ValueError("OPENAI_API_KEY environment variable is not set.")
-openai.api_key = openai_api_key
+# openai_api_key = os.getenv("OPENAI_API_KEY")
+# if not openai_api_key:
+#     raise ValueError("OPENAI_API_KEY environment variable is not set.")
+# openai.api_key = openai_api_key
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if not openai_api_key:
     raise ValueError("OPENAI_API_KEY environment variable is not set.")
@@ -181,6 +240,7 @@ async def sanitize_filename(filename):
 
 # Function to generate audio from text
 async def generate_audio(text: str, filename: str):
+    clean = markdown_to_speech_text(text)
     tts = gTTS(text=text, lang='en')
     audio_path = os.path.join(AUDIO_DIR, f"{filename}.mp3")
     tts.save(audio_path)
@@ -272,4 +332,5 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
