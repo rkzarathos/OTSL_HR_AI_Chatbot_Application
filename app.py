@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -28,7 +28,9 @@ from openpyxl import load_workbook
 import shutil
 import datetime
 import uuid
-
+from typing import List
+from langchain.schema import Document
+from sentence_transformers import CrossEncoder
 
 
 session_id = str(uuid.uuid4())
@@ -187,6 +189,7 @@ os.makedirs(CHROMA_DB_PATH, exist_ok=True)
 
 embedding_function = OpenAIEmbeddings(openai_api_key=openai_api_key)
 vectorstore = Chroma(persist_directory=CHROMA_DB_PATH, embedding_function=embedding_function)
+cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 # Load and process documents from the same location as the code file
 
@@ -215,23 +218,66 @@ print("Documents added to Vector Store")
 
 
 # Initialize Chat Model
-#chat_model = ChatOpenAI(model_name="gpt-4-turbo", temperature=0.4)
-chat_model = ChatOpenAI(model_name="gpt-4-turbo", temperature=0.4)
+
+chat_model = ChatOpenAI(model_name="gpt-4-turbo", temperature=0.2)
 
 prompt_template=PromptTemplate(
         input_variables=["context","question"],
-        template = """You are a document parser/interpreter for the Human Resources Department at On-Target Supplies & Logistics (or OTSL for short).\n"
+        template = """You are a document parser/interpreter for the Human Resources Department at On-Target Supplies & Logistics (or OTSL for short).\n
         All questions you get come from employees of On-Target Supplies & Logistics.
         You are given the following context information.\n
         ---------------------\n
         {context}\\n
         ---------------------\n
         Given the context information and no prior knowledge, answer the query {question}.\n 
-        Provide detailed responses in clear, meaningful sentences that are easy to interpret. No response should be more than 3 sentences.\n
+        Provide detailed responses in clear, meaningful sentences that are easy to interpret. No response should be more than 5 sentences.\n
+        Never provide any person's name or contact information as part of the response.\n
+        If you refer them to a website, try to provide the link to the website as well.\n
+        If an employee account needs to be created and could be necessary and relevant to the query, provide instructions for the same.\n
         Provide responses in short bullet points.\n""" )
 
 llm_chain = LLMChain(llm=chat_model, prompt=prompt_template)
-retriever = vectorstore.as_retriever()
+
+def crossencoder_rerank_docs(
+    question: str,
+    docs: List[Document],
+    top_n: int = 6,
+    max_chunk_chars: int = 2000,
+) -> List[Document]:
+    """
+    Use a cross-encoder model to score [question, chunk] pairs and
+    keep the top_n highest scoring chunks.
+    Deterministic and independent of the LLM used for answering.
+    """
+    if not docs:
+        return []
+
+    # Prepare [question, chunk] pairs
+    pairs = [(question, d.page_content[:max_chunk_chars]) for d in docs]
+
+    # Predict relevance scores (higher = more relevant)
+    scores = cross_encoder.predict(pairs)
+
+    # Zip scores with docs, sort by score descending
+    scored_docs = list(zip(scores, docs))
+    scored_docs.sort(key=lambda x: x[0], reverse=True)
+
+    # Take top_n docs
+    return [doc for score, doc in scored_docs[:top_n]]
+
+
+# retriever = vectorstore.as_retriever()
+
+retriever = vectorstore.as_retriever(
+    search_type="mmr",
+    search_kwargs={
+        "k": 12,          # how many chunks you ultimately want to consider
+        "fetch_k": 40,    # how many to pull before MMR pruning (if supported)
+        "lambda_mult": 0.7,  # 0.0 = more diversity, 1.0 = more similarity
+    },
+)
+
+
 
 # Session-based storage
 session_data = {}
@@ -252,7 +298,7 @@ async def sanitize_filename(filename):
 # Function to generate audio from text
 async def generate_audio(text: str, filename: str):
     clean = markdown_to_speech_text(text)
-    tts = gTTS(text=text, lang='en')
+    tts = gTTS(text=clean, lang='en')
     audio_path = os.path.join(AUDIO_DIR, f"{filename}.mp3")
     tts.save(audio_path)
     return f"/audio/{filename}.mp3"
@@ -271,7 +317,20 @@ async def ask_question(request: Request):
     
     try:
         # Retrieve relevant documents
-        relevant_docs = retriever.get_relevant_documents(question)
+        # relevant_docs = retriever.get_relevant_documents(question)
+        # if not relevant_docs:
+        #    print("No relevant documents found for:", question)
+        #    context = "No relevant documents found. Answering based on general knowledge."
+        # else:
+        #    context = "\n".join([doc.page_content for doc in relevant_docs])
+
+        candidate_docs = retriever.get_relevant_documents(question)
+        relevant_docs = crossencoder_rerank_docs(
+            question=question,
+            docs=candidate_docs,
+            top_n=6,            # tune based on how much context you can afford
+            max_chunk_chars=2000,
+        )
         if not relevant_docs:
             print("No relevant documents found for:", question)
             context = "No relevant documents found. Answering based on general knowledge."
@@ -343,6 +402,7 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
 
