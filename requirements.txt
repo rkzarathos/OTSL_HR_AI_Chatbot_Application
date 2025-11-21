@@ -13,4 +13,7 @@ openpyxl
 azure-storage-blob
 tiktoken
 sentence-transformers
+langchain-core
+python-dotenv
+aiofiles
 
