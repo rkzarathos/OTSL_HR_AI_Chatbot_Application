@@ -13,7 +13,7 @@ if not openai_api_key:
     raise ValueError("OPENAI_API_KEY environment variable is not set.")
 
 DOCUMENTS_DIR = os.getenv("DOCUMENTS_PATH", os.path.join(os.getcwd(), "documents"))
-CHROMA_DB_PATH = os.getenv("CHROMADB_PATH", "/data/chromadb")  # <- important
+CHROMA_DB_PATH = os.getenv("CHROMADB_PATH", "/chromadb")  # <- important
 
 DOCUMENTS = [
     "doc1.pdf", "doc2.pdf", "doc3.pdf", "doc4.pdf", "doc5.pdf",
