@@ -21,10 +21,14 @@ COPY . .
 ENV CHROMADB_PATH=/chromadb
 RUN mkdir -p /chromadb
 
+# Run indexing during build
+RUN python build_index.py
+
 # Expose the port (Azure will pass the PORT env variable, defaulting to 8000)
 EXPOSE 8000
 
 # Start the app using Uvicorn, binding to 0.0.0.0 to allow external access
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+
 
 
