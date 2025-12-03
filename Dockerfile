@@ -17,8 +17,13 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # Copy the rest of your application code into the container
 COPY . .
 
+# Where Chroma index will live inside the container
+ENV CHROMADB_PATH=/data/chromadb
+RUN mkdir -p /data/chromadb
+
 # Expose the port (Azure will pass the PORT env variable, defaulting to 8000)
 EXPOSE 8000
 
 # Start the app using Uvicorn, binding to 0.0.0.0 to allow external access
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+
