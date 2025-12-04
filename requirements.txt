@@ -16,4 +16,7 @@ sentence-transformers
 langchain-core
 python-dotenv
 aiofiles
+azure-ai-documentintelligence
+azure-core
+
 
