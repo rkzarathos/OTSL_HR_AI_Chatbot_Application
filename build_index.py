@@ -70,7 +70,7 @@ def azure_ocr_to_documents(file_path: str) -> List[Document]:
     with open(file_path, "rb") as f:
         poller = doc_client.begin_analyze_document(
             model_id="prebuilt-read",
-            document=f,
+            body=f,
         )
     result = poller.result()
 
