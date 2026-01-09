@@ -436,34 +436,48 @@
         
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
+        
         let fullResponse = "";
         let sources = [];
         let audioUrl = "";
+        let buffer = "";          // <--- important
+        currentLogId = "";        // reset per question
+        currentSessionId = "";
         
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
-          let chunk = decoder.decode(value, { stream: true });
-          let lines = chunk.trim().split("\n");
-          for (let line of lines) {
+        
+          buffer += decoder.decode(value, { stream: true });
+        
+          // Your backend uses "\n\n" between JSON objects
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop(); // keep any incomplete fragment for next chunk
+        
+          for (const part of parts) {
+            const line = part.trim();
             if (!line) continue;
+        
             let data;
             try {
               data = JSON.parse(line);
             } catch (e) {
-              console.error("Error parsing JSON:", line);
+              console.error("NDJSON parse error. Raw part:", line);
               continue;
             }
+        
             if (data.type === "text") {
-              fullResponse += data.content;
+              fullResponse += (data.content || "");
               chatResponse.innerHTML = marked.parse(fullResponse);
-            } } else if (data.type === "metadata") {
-                sources = data.sources || [];
-                audioUrl = data.audio_url || "";
-                currentLogId = data.log_id || "";
-                currentSessionId = data.session_id || "";
-              }
-
+            } else if (data.type === "metadata") {
+              sources = data.sources || [];
+              audioUrl = data.audio_url || "";
+              currentLogId = data.log_id || "";
+              currentSessionId = data.session_id || "";
+              console.log("METADATA received:", { currentLogId, currentSessionId });
+            } else if (data.type === "error") {
+              console.error("Server error chunk:", data);
+            }
           }
         }
         
@@ -504,48 +518,57 @@
     }
     
     // Feedback submission handling
-    document.getElementById("feedback-submit").addEventListener("click", async function() {
-      if (!termsAccepted) {
-        alert("Please accept the Terms & Conditions to use the chatbot.");
-        return;
-      }
-      let feedbackInput = document.getElementById("feedback-input");
-      let feedbackText = feedbackInput.value.trim();
-      let feedbackStatus = document.getElementById("feedback-status");
-      
-      if (!feedbackText) {
-        feedbackStatus.innerHTML = "<p style='color: red;'>Please enter feedback.</p>";
-        return;
-      }
-      
-      try {
-        let response = await fetch("/feedback", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          if (!currentLogId) {
-            feedbackStatus.innerHTML = "<p style='color: red;'>No response ID found yet. Ask a question first, then submit feedback.</p>";
-            return;
-          }
-          
-          body: JSON.stringify({
-            feedback: feedbackText,
-            log_id: currentLogId,
-            session_id: currentSessionId
-          })
-
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        let result = await response.json();
-        feedbackStatus.innerHTML = `<p style='color: green;'>${result.message || 'Feedback submitted successfully.'}</p>`;
-        feedbackInput.value = ""; // Clear the text box after submission
-      } catch (error) {
-        feedbackStatus.innerHTML = `<p style='color: red;'>${error.message}</p>`;
-      }
+    // Feedback submission handling
+  document.getElementById("feedback-submit").addEventListener("click", async function() {
+    if (!termsAccepted) {
+      alert("Please accept the Terms & Conditions to use the chatbot.");
+      return;
+    }
+  
+    let feedbackInput = document.getElementById("feedback-input");
+    let feedbackText = feedbackInput.value.trim();
+    let feedbackStatus = document.getElementById("feedback-status");
+  
+    if (!feedbackText) {
+      feedbackStatus.innerHTML = "<p style='color: red;'>Please enter feedback.</p>";
+      return;
+    }
+  
+    if (!currentLogId) {
+      feedbackStatus.innerHTML =
+        "<p style='color: red;'>No response ID found yet. Ask a question first, then submit feedback.</p>";
+      return;
+    }
+  
+    console.log("Submitting feedback payload:", {
+      feedback: feedbackText,
+      log_id: currentLogId,
+      session_id: currentSessionId
     });
+  
+    try {
+      let response = await fetch("/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          feedback: feedbackText,
+          log_id: currentLogId,
+          session_id: currentSessionId
+        })
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+  
+      let result = await response.json();
+      feedbackStatus.innerHTML =
+        `<p style='color: green;'>${result.message || "Feedback submitted successfully."}</p>`;
+      feedbackInput.value = "";
+    } catch (error) {
+      feedbackStatus.innerHTML = `<p style='color: red;'>${error.message}</p>`;
+    }
+  });
 
     /* --- Terms & Conditions modal wiring --- */
     const termsModal = document.getElementById("terms-modal");
@@ -564,5 +587,6 @@
   </script>
 </body>
 </html>
+
 
 
