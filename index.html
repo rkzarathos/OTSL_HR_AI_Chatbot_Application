@@ -356,7 +356,7 @@
     
     let clientSessionId = localStorage.getItem("client_session_id");
     if (!clientSessionId) {
-      clientSessionId = crypto.randomUUID();
+      clientSessionId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
       localStorage.setItem("client_session_id", clientSessionId);
     }
 
@@ -559,7 +559,7 @@
         body: JSON.stringify({
           feedback: feedbackText,
           log_id: currentLogId,
-          session_id: currentSessionId
+          session_id: clientSessionId
         })
       });
   
@@ -593,6 +593,7 @@
   </script>
 </body>
 </html>
+
 
 
 
