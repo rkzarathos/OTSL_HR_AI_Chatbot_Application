@@ -433,18 +433,25 @@ async def submit_feedback(request: Request):
 @app.post("/feedback")
 async def submit_feedback(request: Request):
     data = await request.json()
-    feedback = data.get("feedback")
-    log_id = data.get("log_id")
-    sess = data.get("session_id", session_id)  # fallback to server session_id
 
-    if not log_id or not feedback:
-        return JSONResponse(content={"error": "Missing log_id or feedback"}, status_code=400)
+    feedback = (data.get("feedback") or "").strip()
+    row_key = (data.get("log_id") or "").strip()
+    session_id = (data.get("session_id") or "").strip()
+
+    if not feedback or not row_key or not session_id:
+        return JSONResponse(
+            content={"error": "Missing required data: feedback, log_id, session_id"},
+            status_code=400
+        )
 
     try:
-        update_feedback_in_table(sess, log_id, feedback)
+        update_feedback_in_table(session_id=session_id, row_key=row_key, feedback=feedback)
         return JSONResponse(content={"message": "Feedback saved successfully"})
     except Exception as e:
-        return JSONResponse(content={"error": f"Failed to save feedback: {str(e)}"}, status_code=500)
+        return JSONResponse(
+            content={"error": f"Failed to save feedback: {str(e)}"},
+            status_code=500
+        )
 
 
 @app.get("/audio/{filename}")
@@ -458,6 +465,7 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
 
