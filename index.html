@@ -353,6 +353,12 @@
     let currentAnswer = "";
     let currentLogId = "";
     let currentSessionId = "";
+    
+    let clientSessionId = localStorage.getItem("client_session_id");
+    if (!clientSessionId) {
+      clientSessionId = crypto.randomUUID();
+      localStorage.setItem("client_session_id", clientSessionId);
+    }
 
     // Terms flag (forces acceptance every session/page load)
     let termsAccepted = false;
@@ -424,7 +430,7 @@
         let response = await fetch("/ask", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: userInput, chat_history: [] })
+          body: JSON.stringify({ question: userInput, session_id: clientSessionId })
         });
         
         if (!response.ok) {
@@ -587,6 +593,7 @@
   </script>
 </body>
 </html>
+
 
 
 
