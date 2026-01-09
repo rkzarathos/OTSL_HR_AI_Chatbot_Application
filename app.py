@@ -58,7 +58,7 @@ blob_service_client = BlobServiceClient.from_connection_string(azure_connection_
 # CHAT_LOG_DIR = os.getenv("CHATHISTORY_PATH", os.path.join(os.getcwd(), "chathistory"))
 # CHAT_HISTORY_FILE = os.path.join(CHAT_LOG_DIR, f"{session_id}_chat_history.xlsx")
 
-CHAT_LOG_DIR = os.getenv("CHAT_TABLE_NAME", "chathistory")
+CHAT_TABLE_NAME = os.getenv("CHAT_TABLE_NAME", "chathistory")
 
 table_service = TableServiceClient.from_connection_string(azure_connection_string)
 table_client = table_service.get_table_client(CHAT_TABLE_NAME)
@@ -228,7 +228,7 @@ DOCUMENTS_DIR = os.getenv("DOCUMENTS_PATH", os.path.join(os.getcwd(), "documents
 
 AUDIO_DIR = os.getenv("AUDIO_PATH", os.path.join(os.getcwd(), "audio"))
 os.makedirs(AUDIO_DIR, exist_ok=True)
-os.makedirs(CHAT_LOG_DIR, exist_ok=True)
+
 
 CHROMA_DB_PATH = os.getenv("CHROMADB_PATH", "./chromadb")
 os.makedirs(CHROMA_DB_PATH, exist_ok=True)
@@ -334,8 +334,6 @@ async def ask_question(request: Request):
     data = await request.json()
     question = data.get("question")
     client_session_id = data.get("session_id") or session_id
-    log_id = log_chat_to_table(client_session_id, question, full_response)
-
     
     if not question:
         return JSONResponse(content={"error": "No question provided"}, status_code=400)
@@ -380,9 +378,9 @@ async def ask_question(request: Request):
                 sources = [doc.page_content for doc in relevant_docs]
                 yield json.dumps({"type": "metadata", "sources": sources, "audio_url": audio_url}) + "\n\n"
                 '''
-                log_id = log_chat_to_table(session_id, question, full_response)
-
-                sanitized_filename = f"{session_id}_{uuid.uuid4().hex}"
+                log_id = log_chat_to_table(client_session_id, question, full_response)
+                
+                sanitized_filename = f"{client_session_id}_{uuid.uuid4().hex}"
                 audio_url = await generate_audio(full_response, sanitized_filename)
                 
                 sources = [doc.page_content for doc in relevant_docs]
@@ -391,7 +389,7 @@ async def ask_question(request: Request):
                     "sources": sources,
                     "audio_url": audio_url,
                     "log_id": log_id,
-                    "session_id": session_id
+                    "session_id": client_session_id
                 }) + "\n\n"
                 
             except Exception as e:
@@ -460,6 +458,7 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
 
