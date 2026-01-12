@@ -58,22 +58,29 @@ blob_service_client = BlobServiceClient.from_connection_string(azure_connection_
 # CHAT_LOG_DIR = os.getenv("CHATHISTORY_PATH", os.path.join(os.getcwd(), "chathistory"))
 # CHAT_HISTORY_FILE = os.path.join(CHAT_LOG_DIR, f"{session_id}_chat_history.xlsx")
 
-CHAT_TABLE_NAME = os.getenv("CHAT_TABLE_NAME", "chathistory")
+# 1. FIRST create the service client
+service_client = TableServiceClient.from_connection_string(
+    conn_str=AZURE_STORAGE_CONNECTION_STRING
+)
 
-table_service = TableServiceClient.from_connection_string(azure_connection_string)
-table_client = table_service.get_table_client(CHAT_TABLE_NAME)
+# 2. THEN create chat history table
+CHAT_TABLE_NAME = os.getenv("CHAT_TABLE_NAME", "chathistory")
+table_client = service_client.get_table_client(table_name=CHAT_TABLE_NAME)
 try:
     table_client.create_table()
-except ResourceExistsError:
+except Exception:
     pass
 
+# 3. THEN create survey table (after service_client exists)
 SURVEY_TABLE_NAME = os.getenv("SURVEY_TABLE_NAME", "hrchatbotsurvey")
 
-survey_table_client = service_client.get_table_client(table_name=SURVEY_TABLE_NAME)
+survey_table_client = service_client.get_table_client(
+    table_name=SURVEY_TABLE_NAME
+)
 try:
     survey_table_client.create_table()
 except Exception:
-    pass  # already exists
+    pass
 
 
 _RE_FENCE      = re.compile(r"```.*?```", re.S)
@@ -524,6 +531,7 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
 
