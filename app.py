@@ -60,7 +60,7 @@ blob_service_client = BlobServiceClient.from_connection_string(azure_connection_
 
 # 1. FIRST create the service client
 service_client = TableServiceClient.from_connection_string(
-    conn_str=AZURE_STORAGE_CONNECTION_STRING
+    conn_str=azure_connection_string 
 )
 
 # 2. THEN create chat history table
@@ -531,6 +531,7 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
 
