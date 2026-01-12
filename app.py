@@ -67,6 +67,15 @@ try:
 except ResourceExistsError:
     pass
 
+SURVEY_TABLE_NAME = os.getenv("SURVEY_TABLE_NAME", "hrchatbotsurvey")
+
+survey_table_client = service_client.get_table_client(table_name=SURVEY_TABLE_NAME)
+try:
+    survey_table_client.create_table()
+except Exception:
+    pass  # already exists
+
+
 _RE_FENCE      = re.compile(r"```.*?```", re.S)
 _RE_INLINECODE = re.compile(r"`([^`]*)`")
 _RE_IMG        = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
@@ -86,6 +95,24 @@ _RE_URL = re.compile(r'\b(?:https?|ftp)://\S+')
 def _make_row_key() -> str:
     now = datetime.datetime.utcnow()
     return f"{now.strftime('%Y%m%d%H%M%S%f')}_{uuid.uuid4().hex}"
+
+
+def log_survey_to_table(session_id: str, ratings: dict) -> str:
+    row_key = _make_row_key()
+    entity = {
+        "PartitionKey": session_id,
+        "RowKey": row_key,
+        "SubmittedAtUTC": datetime.utcnow().isoformat(),
+
+        # store each question rating
+        "Q1": int(ratings["q1"]),
+        "Q2": int(ratings["q2"]),
+        "Q3": int(ratings["q3"]),
+        "Q4": int(ratings["q4"]),
+        "Q5": int(ratings["q5"]),
+    }
+    survey_table_client.create_entity(entity=entity)
+    return row_key
 
 
 def log_chat_to_table(session_id: str, question: str, response: str) -> str:
@@ -461,10 +488,43 @@ async def get_audio(filename: str):
         return FileResponse(file_path, media_type="audio/mpeg")
     return JSONResponse(content={"error": "Audio file not found"}, status_code=404)
 
+@app.post("/survey")
+async def submit_survey(request: Request):
+    data = await request.json()
+    session_id = (data.get("session_id") or "").strip()
+    ratings = data.get("ratings") or {}
+
+    required = ["q1", "q2", "q3", "q4", "q5"]
+    if not session_id or any(k not in ratings for k in required):
+        return JSONResponse(
+            content={"error": "Missing required data: session_id and ratings(q1..q5)"},
+            status_code=400
+        )
+
+    # validate 1-5
+    try:
+        for k in required:
+            v = int(ratings[k])
+            if v < 1 or v > 5:
+                raise ValueError(f"{k} out of range")
+    except Exception:
+        return JSONResponse(
+            content={"error": "Ratings must be integers 1-5 for q1..q5"},
+            status_code=400
+        )
+
+    try:
+        row_key = log_survey_to_table(session_id=session_id, ratings=ratings)
+        return JSONResponse(content={"message": "Survey saved", "survey_id": row_key})
+    except Exception as e:
+        return JSONResponse(content={"error": f"Failed to save survey: {str(e)}"}, status_code=500)
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
 
