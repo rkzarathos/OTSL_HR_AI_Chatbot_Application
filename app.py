@@ -99,6 +99,35 @@ _RE_TIME_COLON = re.compile(r'(?<=\d):(?=\d)')
 _RE_URL = re.compile(r'\b(?:https?|ftp)://\S+')
 
 
+TOPIC_CATALOG = [
+  {"code":"T01_SECURITY_FACILITIES", "label":"Security & Facility Access", "hints":["building access","badge","after-hours","restricted area","keys","entry points","security authorization"]},
+  {"code":"T02_RECRUITING_REFERRALS", "label":"Recruiting & Employee Referrals", "hints":["referral","candidate","hiring restriction","bonus payout","submission","recruiting"]},
+  {"code":"T03_TIME_OFF_PTO", "label":"Time Off (PTO, Sick, Holidays)", "hints":["PTO","paid time off","vacation","sick","holiday","accrual","carryover","request time off"]},
+  {"code":"T04_LEAVE_FMLA_LOA", "label":"Leave of Absence (FMLA/LOA)", "hints":["FMLA","leave of absence","intermittent leave","claim","return to work","job protection","medical certification"]},
+  {"code":"T05_BENEFITS_MEDICAL", "label":"Benefits — Medical", "hints":["medical plan","deductible","copay","in-network","baseline visit","curative program","coverage","eligibility"]},
+  {"code":"T06_BENEFITS_PHARMACY", "label":"Benefits — Pharmacy", "hints":["prescription","pharmacy","Rx","formulary","mail order","drug coverage"]},
+  {"code":"T07_BENEFITS_DENTAL_VISION", "label":"Benefits — Dental & Vision", "hints":["dental","vision","eye exam","glasses","orthodontia","cleaning"]},
+  {"code":"T08_BENEFITS_LIFE_DISABILITY", "label":"Benefits — Life & Disability", "hints":["life insurance","beneficiary","short-term disability","long-term disability","disability claim"]},
+  {"code":"T09_RETIREMENT_401K", "label":"Retirement — 401(k)", "hints":["401k","NetBenefits","contribution","match","vesting","rollover","distribution","loan"]},
+  {"code":"T10_PAYROLL_COMPENSATION", "label":"Payroll, Paychecks & Compensation", "hints":["paycheck","paystub","direct deposit","withholding","overtime","bonus","compensation","pay rate"]},
+  {"code":"T11_TAX_FORMS", "label":"Tax Forms (W-2/1095-C/1099)", "hints":["W-2","1095-C","1099","tax form","health coverage form"]},
+  {"code":"T12_HR_SYSTEMS_EXPONENTHR", "label":"HR Systems — ExponentHR Self-Service", "hints":["ExponentHR","dashboard","self-service","login","account registration","time entry","profile","documents"]},
+  {"code":"T13_EMPLOYEE_RECORDS_DOCS", "label":"Employee Records & HR Documents", "hints":["personnel file","records","verification","forms","acknowledgement","documentation"]},
+  {"code":"T14_PERFORMANCE_MANAGEMENT", "label":"Performance Management", "hints":["review","evaluation","goals","rating","feedback","performance improvement"]},
+  {"code":"T15_WORKPLACE_CONDUCT_POLICY", "label":"Workplace Conduct & Policies", "hints":["code of conduct","policy","harassment","ethics","workplace behavior","standards"]},
+  {"code":"T16_DISCIPLINE_CORRECTIVE", "label":"Discipline & Corrective Action", "hints":["disciplinary action","termination","warning","violation","misconduct","corrective"]},
+  {"code":"T17_REMOTE_WORK", "label":"Remote Work", "hints":["remote work","work from home","hybrid","telework","remote policy"]},
+  {"code":"T18_TRAVEL_EXPENSES", "label":"Travel & Expenses", "hints":["travel","expense","reimbursement","mileage","per diem","hotel","airfare"]},
+  {"code":"T19_ONBOARDING_OFFBOARDING", "label":"Onboarding & Offboarding", "hints":["new hire","onboarding","orientation","offboarding","resignation","final paycheck","return equipment"]},
+  {"code":"T20_OTHER_GENERAL", "label":"Other / Not Covered", "hints":["unclear","not in docs","general question"]}
+]
+
+
+TOPIC_CATALOG_TEXT = "\n".join([
+    f'- {t["code"]}: {t["label"]}'
+    for t in TOPIC_CATALOG
+])
+
 def _make_row_key() -> str:
     now = datetime.datetime.utcnow()
     return f"{now.strftime('%Y%m%d%H%M%S%f')}_{uuid.uuid4().hex}"
@@ -122,23 +151,31 @@ def log_survey_to_table(session_id: str, ratings: dict) -> str:
     return row_key
 
 
-def log_chat_to_table(session_id: str, question: str, response: str) -> str:
+def log_chat_to_table(session_id: str, question: str, response: str, classification: dict | None = None) -> str:
     row_key = _make_row_key()
     now = datetime.datetime.utcnow().isoformat() + "Z"
 
     entity = {
-        "PartitionKey": session_id,     # groups all rows from this session
-        "RowKey": row_key,              # unique id per interaction
+        "PartitionKey": session_id,
+        "RowKey": row_key,
         "CreatedUtc": now,
         "Question": question,
         "Response": response,
-        "Feedback": "",                 # updated later
+        "Feedback": "",
     }
 
-    # NOTE: Table entity max size is 1 MB. If you expect long responses,
-    # store response in Blob and put only a pointer here.
+    if classification:
+        entity["MainTopicCode"]  = (classification.get("main_topic_code") or "")[:128]
+        entity["MainTopicLabel"] = (classification.get("main_topic_label") or "")[:256]
+        entity["Subtopic"]       = (classification.get("subtopic") or "")[:128]
+        try:
+            entity["TopicConfidence"] = float(classification.get("confidence", 0.0))
+        except Exception:
+            entity["TopicConfidence"] = 0.0
+
     table_client.create_entity(entity=entity)
     return row_key
+
 
 
 def update_feedback_in_table(session_id: str, row_key: str, feedback: str):
@@ -150,7 +187,33 @@ def update_feedback_in_table(session_id: str, row_key: str, feedback: str):
     }
     table_client.update_entity(mode=UpdateMode.MERGE, entity=patch)
 
+_RE_JSON_BLOCK = re.compile(r"```json\s*(\{.*?\})\s*```", re.S)
 
+def extract_classification_json(full_text: str) -> dict:
+    """
+    Extract the LAST ```json {...}``` block from model output.
+    Returns {} if none found or parse fails.
+    """
+    matches = _RE_JSON_BLOCK.findall(full_text or "")
+    if not matches:
+        return {}
+    raw = matches[-1]
+    try:
+        return json.loads(raw)
+    except Exception:
+        return {}
+
+def strip_json_block(full_text: str) -> str:
+    """
+    Remove the LAST json code block so user-facing answer stays clean if needed.
+    """
+    if not full_text:
+        return full_text
+    matches = list(_RE_JSON_BLOCK.finditer(full_text))
+    if not matches:
+        return full_text
+    last = matches[-1]
+    return (full_text[:last.start()] + full_text[last.end():]).strip()
 
 def markdown_to_speech_text(md: str, normalize_colons: bool = True, colon_replacement: str = " — ") -> str:
     """Strip Markdown/HTML so TTS won't spell out formatting, and (optionally) turn non-time colons into a pause."""
@@ -203,7 +266,7 @@ def markdown_to_speech_text(md: str, normalize_colons: bool = True, colon_replac
     t = re.sub(r"[ \t]+\n", "\n", t)
     t = re.sub(r"\n{3,}", "\n\n", t)
     return t.strip()
-
+    
 
 '''
 def save_to_excel(query, response, feedback=None):
@@ -273,7 +336,7 @@ cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 # Initialize Chat Model
 
-chat_model = ChatOpenAI(model_name="gpt-4.1-mini", temperature=0.2)
+chat_model = ChatOpenAI(model_name="gpt-4.1-mini", temperature=0.1)
 
 prompt_template=PromptTemplate(
         input_variables=["context","question"],
@@ -284,13 +347,34 @@ prompt_template=PromptTemplate(
         {context}\\n
         ---------------------\n
         Given the context information and no prior knowledge, answer the query {question}.\n 
-        Provide detailed responses in clear, meaningful sentences that are easy to interpret.\n
+        Provide detailed responses in five to six clear, meaningful sentences that are easy to interpret.\n
         In the response, include which team, company, or department to reach out to regarding this information.
         Don't provide any person's name or contact information (phone number or address) as part of the response.\n
         For example, if any answer/documentation includes the name "Lorene Smith", don't include it in the response.\n
         If you refer them to a website, try to provide the link to the website as well.\n
-        If an employee account needs to be created and could be necessary and relevant to the query, provide instructions for the same.\n
-        Provide a follow-up question at the end of the response, relevant to the current query, that the user could potentially ask.\n""" )
+        If an employee account needs to be created and is necessary or relevant to the query, provide instructions for its creation.\n
+        Provide a follow-up question at the end of the response, relevant to the current query, that the user could potentially ask.\n
+
+        Now, classify the question into EXACTLY ONE Main Topic code from the allowed catalog below. \n        
+        Allowed Main Topic Catalog (choose exactly ONE code): {TOPIC_CATALOG_TEXT} \n
+
+        Generate a concise 2–4 word subtopic phrase that best describes the question.\n
+
+        Output format (STRICT): output a JSON code block exactly like:
+
+        {{
+          "main_topic_code": "Txx_...",
+          "main_topic_label": "...",
+          "subtopic": "2-5 words",
+          "confidence": 0.00,
+          "alternate_topics": [
+            {{"code":"Txx_...", "label":"...", "confidence": 0.00}}
+          ],
+          "needs_clarification": false
+        }}
+        
+        """ )
+
 
 llm_chain = LLMChain(llm=chat_model, prompt=prompt_template)
 
@@ -403,7 +487,8 @@ async def ask_question(request: Request):
                     full_response += text_chunk
                     yield json.dumps({"type": "text", "content": text_chunk}) + "\n\n"
                     await asyncio.sleep(0)
-                
+
+                classification = extract_classification_json(full_response)
                 # Process audio generation and metadata
                 '''
                 log_id = log_chat_to_table(session_id, question, full_response)
@@ -412,7 +497,8 @@ async def ask_question(request: Request):
                 sources = [doc.page_content for doc in relevant_docs]
                 yield json.dumps({"type": "metadata", "sources": sources, "audio_url": audio_url}) + "\n\n"
                 '''
-                log_id = log_chat_to_table(client_session_id, question, full_response)
+                # log_id = log_chat_to_table(client_session_id, question, full_response)
+                log_id = log_chat_to_table(client_session_id, question, full_response, classification=classification)
                 
                 sanitized_filename = f"{client_session_id}_{uuid.uuid4().hex}"
                 audio_url = await generate_audio(full_response, sanitized_filename)
@@ -423,7 +509,8 @@ async def ask_question(request: Request):
                     "sources": sources,
                     "audio_url": audio_url,
                     "log_id": log_id,
-                    "session_id": client_session_id
+                    "session_id": client_session_id,
+                    "classification": classification
                 }) + "\n\n"
                 
             except Exception as e:
@@ -531,6 +618,7 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
 
