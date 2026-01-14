@@ -28,7 +28,7 @@ from openpyxl import load_workbook
 import shutil
 import datetime
 import uuid
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from langchain.schema import Document
 from sentence_transformers import CrossEncoder
 from azure.data.tables import TableServiceClient, UpdateMode
@@ -148,7 +148,12 @@ def log_survey_to_table(session_id: str, ratings: dict) -> str:
     return row_key
 
 
-def log_chat_to_table(session_id: str, question: str, response: str, classification: Optional[Dict] = None) -> str:
+def log_chat_to_table(
+    session_id: str,
+    question: str,
+    response: str,
+    classification: Optional[Dict[str, Any]] = None
+) -> str:
     row_key = _make_row_key()
     now = datetime.datetime.utcnow().isoformat() + "Z"
 
@@ -156,19 +161,27 @@ def log_chat_to_table(session_id: str, question: str, response: str, classificat
         "PartitionKey": session_id,
         "RowKey": row_key,
         "CreatedUtc": now,
-        "Question": question,
-        "Response": response,
+        "Question": question[:32000],   # safe-ish truncation
+        "Response": response[:32000],
         "Feedback": "",
     }
 
     if classification:
-        entity["MainTopicCode"]  = (classification.get("main_topic_code") or "")[:128]
+        entity["MainTopicCode"] = (classification.get("main_topic_code") or "")[:128]
         entity["MainTopicLabel"] = (classification.get("main_topic_label") or "")[:256]
-        entity["Subtopic"]       = (classification.get("subtopic") or "")[:128]
+        entity["Subtopic"] = (classification.get("subtopic") or "")[:128]
+        entity["NeedsClarification"] = bool(classification.get("needs_clarification", False))
         try:
             entity["TopicConfidence"] = float(classification.get("confidence", 0.0))
         except Exception:
             entity["TopicConfidence"] = 0.0
+
+        # alternates as compact JSON string (truncate)
+        try:
+            alt = classification.get("alternate_topics") or []
+            entity["AlternateTopics"] = json.dumps(alt)[:8000]
+        except Exception:
+            entity["AlternateTopics"] = "[]"
 
     table_client.create_entity(entity=entity)
     return row_key
@@ -265,6 +278,33 @@ def markdown_to_speech_text(md: str, normalize_colons: bool = True, colon_replac
     return t.strip()
     
 
+def parse_llm_json(full_text: str) -> dict:
+    """
+    Parse strict JSON. If the model ever returns extra text,
+    attempt to recover by extracting the first {...} block.
+    """
+    if not full_text:
+        return {}
+
+    # First try strict parse
+    try:
+        return json.loads(full_text)
+    except Exception:
+        pass
+
+    # Recovery: find first JSON object boundaries
+    start = full_text.find("{")
+    end = full_text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        candidate = full_text[start:end+1]
+        try:
+            return json.loads(candidate)
+        except Exception:
+            return {}
+
+    return {}
+
+
 '''
 def save_to_excel(query, response, feedback=None):
     """Append a query-response pair to an Excel file."""
@@ -335,43 +375,52 @@ cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 chat_model = ChatOpenAI(model_name="gpt-4.1-mini", temperature=0.1)
 
-prompt_template=PromptTemplate(
-        input_variables=["context","question","TOPIC_CATALOG_TEXT"],
-        template = """You are a document parser/interpreter for the Human Resources Department at On-Target Supplies & Logistics (or OTSL for short).\n
-        All questions you get come from employees of On-Target Supplies & Logistics.
-        You are given the following context information.\n
-        ---------------------\n
-        {context}\\n
-        ---------------------\n
-        Given the context information and no prior knowledge, answer the query {question}.\n 
-        Provide detailed responses in five to six clear, meaningful sentences that are easy to interpret.\n
-        In the response, include which team, company, or department to reach out to regarding this information.
-        Don't provide any person's name or contact information (phone number or address) as part of the response.\n
-        For example, if any answer/documentation includes the name "Lorene Smith", don't include it in the response.\n
-        If you refer them to a website, try to provide the link to the website as well.\n
-        If an employee account needs to be created and is necessary or relevant to the query, provide instructions for its creation.\n
-        Provide a follow-up question at the end of the response, relevant to the current query, that the user could potentially ask.\n
+TOPIC_CATALOG_TEXT = "\n".join([f'{t["code"]}: {t["label"]}' for t in TOPIC_CATALOG])
 
-        Now, classify the question into EXACTLY ONE Main Topic code from the allowed catalog below. \n        
-        Allowed Main Topic Catalog (choose exactly ONE code): {TOPIC_CATALOG_TEXT} \n
+prompt_template = PromptTemplate(
+    input_variables=["context", "question"],
+    template=f"""You are an HR document interpreter for On-Target Supplies & Logistics (OTSL).
+All questions come from OTSL employees.
 
-        Generate a concise 2–4 word subtopic phrase that best describes the question.\n
+You MUST return ONLY a single valid JSON object (no markdown, no backticks, no commentary).
 
-        Output format (STRICT): output a JSON code block exactly like:
+Allowed Main Topic Codes (choose exactly ONE):
+{TOPIC_CATALOG_TEXT}
 
-        {{
-          "main_topic_code": "Txx_...",
-          "main_topic_label": "...",
-          "subtopic": "2-5 words",
-          "confidence": 0.00,
-          "alternate_topics": [
-            {{"code":"Txx_...", "label":"...", "confidence": 0.00}}
-          ],
-          "needs_clarification": false
-        }}
-        
-        """ )
+Context:
+---------------------
+{{context}}
+---------------------
 
+Question: {{question}}
+
+Rules:
+- Use ONLY the context. If the context does not contain the answer, say so in the answer and suggest who to contact.
+- Include which team/company/department to reach out to (no personal names, no phone numbers, no addresses).
+- If a website link exists in the context and is relevant, include it in the answer.
+- End the answer with one relevant follow-up question.
+
+Return JSON with this EXACT schema (all keys required):
+{{
+  "answer": "string (markdown allowed inside this string)",
+  "main_topic_code": "Txx_...",
+  "main_topic_label": "string",
+  "subtopic": "2-5 words",
+  "confidence": 0.0,
+  "alternate_topics": [
+    {{"code":"Txx_...","label":"string","confidence":0.0}}
+  ],
+  "needs_clarification": false
+}}
+
+Constraints:
+- answer must be a string.
+- subtopic must be 2–5 words.
+- confidence must be between 0 and 1.
+- alternate_topics must contain 0–3 items.
+- Output must be strictly valid JSON (double quotes, no trailing commas).
+"""
+)
 
 llm_chain = LLMChain(llm=chat_model, prompt=prompt_template)
 
@@ -449,76 +498,57 @@ async def ask_question(request: Request):
     data = await request.json()
     question = data.get("question")
     client_session_id = data.get("session_id") or session_id
-    
+
     if not question:
         return JSONResponse(content={"error": "No question provided"}, status_code=400)
-    
+
     try:
-        # Retrieve relevant documents
-        # relevant_docs = retriever.get_relevant_documents(question)
-        # if not relevant_docs:
-        #    print("No relevant documents found for:", question)
-        #    context = "No relevant documents found. Answering based on general knowledge."
-        # else:
-        #    context = "\n".join([doc.page_content for doc in relevant_docs])
-
         candidate_docs = retriever.get_relevant_documents(question)
-        relevant_docs = crossencoder_rerank_docs(
+        relevant_docs = crossencoder_rerank_docs(question, candidate_docs, top_n=6, max_chunk_chars=2000)
+
+        context = "No relevant documents found." if not relevant_docs else "\n".join([d.page_content for d in relevant_docs])
+
+        # ONE CALL: model returns JSON
+        result = await llm_chain.acall({"context": context, "question": question})
+        full_text = result.get("text", "")
+
+        payload = parse_llm_json(full_text)
+
+        answer = (payload.get("answer") or "").strip()
+        if not answer:
+            # fallback if model broke schema
+            answer = "I couldn't format a structured response. Please re-try your question."
+
+        # Log everything (store full_text too for audit/debug)
+        log_id = log_chat_to_table(
+            session_id=client_session_id,
             question=question,
-            docs=candidate_docs,
-            top_n=6,            # tune based on how much context you can afford
-            max_chunk_chars=2000,
+            response=answer,                 # store the clean answer
+            classification=payload           # store topic/subtopic/confidence
         )
-        if not relevant_docs:
-            print("No relevant documents found for:", question)
-            context = "No relevant documents found. Answering based on general knowledge."
-        else:
-            context = "\n".join([doc.page_content for doc in relevant_docs])
-        
-        # Stream response while collecting full text
-        async def response_generator():
-            try:
-                full_response = ""
-                async for chunk in llm_chain.astream({"context": context, "question": question, "TOPIC_CATALOG_TEXT": TOPIC_CATALOG_TEXT}):
-                    text_chunk = chunk.get("text", "\n")
-                    full_response += text_chunk
-                    yield json.dumps({"type": "text", "content": text_chunk}) + "\n\n"
-                    await asyncio.sleep(0)
 
-                classification = extract_classification_json(full_response)
-                # Process audio generation and metadata
-                '''
-                log_id = log_chat_to_table(session_id, question, full_response)
-                sanitized_filename = await sanitize_filename(question)
-                audio_url = await generate_audio(full_response, sanitized_filename)
-                sources = [doc.page_content for doc in relevant_docs]
-                yield json.dumps({"type": "metadata", "sources": sources, "audio_url": audio_url}) + "\n\n"
-                '''
-                # log_id = log_chat_to_table(client_session_id, question, full_response)
-                log_id = log_chat_to_table(client_session_id, question, full_response, classification=classification)
-                
-                sanitized_filename = f"{client_session_id}_{uuid.uuid4().hex}"
-                audio_url = await generate_audio(full_response, sanitized_filename)
-                
-                sources = [doc.page_content for doc in relevant_docs]
-                yield json.dumps({
-                    "type": "metadata",
-                    "sources": sources,
-                    "audio_url": audio_url,
-                    "log_id": log_id,
-                    "session_id": client_session_id,
-                    "classification": classification
-                }) + "\n\n"
-                
-            except Exception as e:
-                print(f"Error in streaming generator: {e}")
-                yield json.dumps({"type": "error", "content": str(e)}) + "\n\n"
+        sanitized_filename = f"{client_session_id}_{uuid.uuid4().hex}"
+        audio_url = await generate_audio(answer, sanitized_filename)
 
-        return StreamingResponse(response_generator(), media_type="application/x-ndjson")
-    
+        return JSONResponse(content={
+            "answer": answer,
+            "audio_url": audio_url,
+            "log_id": log_id,
+            "session_id": client_session_id,
+            "classification": {
+                "main_topic_code": payload.get("main_topic_code", ""),
+                "main_topic_label": payload.get("main_topic_label", ""),
+                "subtopic": payload.get("subtopic", ""),
+                "confidence": payload.get("confidence", 0.0),
+                "alternate_topics": payload.get("alternate_topics", []),
+                "needs_clarification": payload.get("needs_clarification", False)
+            }
+        })
+
     except Exception as e:
         print(f"Error processing request: {e}")
         return JSONResponse(content={"error": f"Server error: {str(e)}"}, status_code=500)
+
 
 '''
 @app.post("/feedback")
@@ -615,6 +645,7 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
 
