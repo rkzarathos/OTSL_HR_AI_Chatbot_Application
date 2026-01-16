@@ -568,29 +568,19 @@ let surveyCompleted = localStorage.getItem(`survey_done_${clientSessionId}`) ===
           docSources.innerHTML = "";
         }
         
-        // store answer for chat history + feedback
-        currentAnswer = answerText;
-        document.getElementById("feedback-status").innerHTML = "";
-        document.getElementById("feedback-input").value = "";
-        
-        updateChatHistory(currentQuestion, currentAnswer);
-        
-        // Increment question count after successful answer
-        questionCount += 1;
-        localStorage.setItem(`question_count_${clientSessionId}`, questionCount.toString());
-        
-        // clear input
-        document.getElementById("user-input").value = "";
-
-        document.getElementById("feedback-status").innerHTML = "";
-        document.getElementById("feedback-input").value = "";
-
-        updateChatHistory(currentQuestion, currentAnswer);
-        // Increment question count after successful answer
-        questionCount += 1;
-        localStorage.setItem(`question_count_${clientSessionId}`, questionCount.toString());
-
-        document.getElementById("user-input").value = "";
+      // store answer for chat history + feedback
+      currentAnswer = answerText;
+      document.getElementById("feedback-status").innerHTML = "";
+      document.getElementById("feedback-input").value = "";
+      
+      updateChatHistory(currentQuestion, currentAnswer);
+      
+      // Increment question count after successful answer (ONLY ONCE)
+      questionCount += 1;
+      localStorage.setItem(`question_count_${clientSessionId}`, questionCount.toString());
+      
+      // clear input
+      document.getElementById("user-input").value = "";
       } catch (error) {
         responseContainer.innerHTML = `<p style='color: red;'>Error: ${error.message}</p>`;
       }
@@ -778,6 +768,7 @@ let surveyCompleted = localStorage.getItem(`survey_done_${clientSessionId}`) ===
   </script>
 </body>
 </html>
+
 
 
 
