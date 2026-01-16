@@ -377,21 +377,39 @@ chat_model = ChatOpenAI(model_name="gpt-4.1-mini", temperature=0.1)
 
 TOPIC_CATALOG_TEXT = "\n".join([f'{t["code"]}: {t["label"]}' for t in TOPIC_CATALOG])
 
+JSON_SCHEMA = """
+{
+  "answer": "string (markdown allowed inside this string)",
+  "main_topic_code": "Txx_...",
+  "main_topic_label": "string",
+  "subtopic": "2-5 words",
+  "confidence": 0.0,
+  "alternate_topics": [
+    {"code":"Txx_...","label":"string","confidence":0.0}
+  ],
+  "needs_clarification": false
+}
+""".strip()
+
 prompt_template = PromptTemplate(
     input_variables=["context", "question"],
-    template=f"""You are an HR document interpreter for On-Target Supplies & Logistics (OTSL).
+    partial_variables={
+        "topic_catalog": TOPIC_CATALOG_TEXT,
+        "json_schema": JSON_SCHEMA,
+    },
+    template="""You are an HR document interpreter for On-Target Supplies & Logistics (OTSL).
 
 You MUST return ONLY a single valid JSON object (no markdown, no backticks, no commentary).
 
 Allowed Main Topic Codes (choose exactly ONE):
-{TOPIC_CATALOG_TEXT}
+{topic_catalog}
 
 Context:
 ---------------------
-{{context}}
+{context}
 ---------------------
 
-Question: {{question}}
+Question: {question}
 
 Rules:
 - Use ONLY the context. If the context does not contain the answer, say so in the answer and suggest who to contact.
@@ -400,17 +418,7 @@ Rules:
 - End the answer with one relevant follow-up question.
 
 Return JSON with this EXACT schema (all keys required):
-{{
-  "answer": "string (markdown allowed inside this string)",
-  "main_topic_code": "Txx_...",
-  "main_topic_label": "string",
-  "subtopic": "2-5 words",
-  "confidence": 0.0,
-  "alternate_topics": [
-    {{"code":"Txx_...","label":"string","confidence":0.0}}
-  ],
-  "needs_clarification": false
-}}
+{json_schema}
 
 Constraints:
 - answer must be a string.
@@ -422,6 +430,7 @@ Constraints:
 )
 
 llm_chain = LLMChain(llm=chat_model, prompt=prompt_template)
+
 
 def crossencoder_rerank_docs(
     question: str,
@@ -644,6 +653,7 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
 
