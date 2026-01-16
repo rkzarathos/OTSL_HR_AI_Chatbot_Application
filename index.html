@@ -510,6 +510,11 @@ let surveyCompleted = localStorage.getItem(`survey_done_${clientSessionId}`) ===
         alert("Please accept the Terms & Conditions to start chatting.");
         return;
       }
+        // ===== Survey gate (ADD THIS) =====
+      if (!surveyCompleted && questionCount >= MAX_FREE_QUESTIONS) {
+        openSurvey();
+        return;
+      }
       let userInput = document.getElementById("user-input").value;
       currentQuestion = userInput; // set the current question for feedback
       let responseContainer = document.getElementById("response-container");
@@ -773,6 +778,7 @@ let surveyCompleted = localStorage.getItem(`survey_done_${clientSessionId}`) ===
   </script>
 </body>
 </html>
+
 
 
 
