@@ -380,6 +380,7 @@ TOPIC_CATALOG_TEXT = "\n".join([f'{t["code"]}: {t["label"]}' for t in TOPIC_CATA
 JSON_SCHEMA = """
 {
   "answer": "string (markdown allowed inside this string)",
+  "follow_up_question": "string (must end with a ?)",
   "main_topic_code": "Txx_...",
   "main_topic_label": "string",
   "subtopic": "2-5 words",
@@ -435,6 +436,7 @@ Constraints:
 - subtopic must be 2–5 words.
 - confidence must be between 0 and 1.
 - alternate_topics must contain 0–3 items.
+- follow_up_question must be a single question ending with "?" and must be relevant to the answer.
 - Output must be strictly valid JSON (double quotes, no trailing commas).
 """
 )
@@ -550,8 +552,14 @@ async def ask_question(request: Request):
         sanitized_filename = f"{client_session_id}_{uuid.uuid4().hex}"
         audio_url = await generate_audio(answer, sanitized_filename)
 
+        follow_up = (payload.get("follow_up_question") or "").strip()
+
+        if follow_up and not follow_up.endswith("?"):
+            follow_up = follow_up + "?"
+
         return JSONResponse(content={
             "answer": answer,
+            "follow_up_question": follow_up,   # ✅ ADD THIS
             "audio_url": audio_url,
             "log_id": log_id,
             "session_id": client_session_id,
@@ -670,6 +678,7 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
 
