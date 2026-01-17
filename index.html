@@ -252,27 +252,26 @@
     .light-mode .tiny-disclaimer{ color:#555; }
 
     /* ===========================
-       SURVEY: harden visibility + avoid style collisions
+       SURVEY: bulletproof show/hide
        =========================== */
     
-    /* make survey overlay truly hidden unless explicitly opened */
-    #surveyOverlay { display: none; }
-    #surveyOverlay:not(.hidden) { display: flex; }
-    
-    /* keep the helper class for JS toggling */
-    .hidden { display: none; }
-    
-    /* survey overlay styling (leave overlay generic if you want) */
-    #surveyOverlay.overlay {
+    /* Overlay defaults to flex; JS hides it via .hidden */
+    #surveyOverlay {
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,0.6);
+      display: flex;              /* IMPORTANT: default is visible */
       align-items: center;
       justify-content: center;
-      z-index: 2100; /* above sidebars; below terms if terms is 2000? -> set higher */
+      z-index: 3000;              /* above everything (terms was 2000) */
     }
     
-    /* IMPORTANT: survey uses its own modal class (not .modal) */
+    /* Hidden ALWAYS wins */
+    #surveyOverlay.hidden {
+      display: none !important;
+    }
+    
+    /* Survey modal */
     .survey-modal {
       background: #fff;
       max-width: 720px;
@@ -288,6 +287,7 @@
     #surveyOverlay .scale button.selected { outline: 2px solid #000; }
     #surveyOverlay .actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
     #surveyOverlay .status { margin-top:10px; }
+
 
     
   </style>
@@ -690,12 +690,17 @@ let surveyCompleted = localStorage.getItem(`survey_done_${clientSessionId}`) ===
       let surveyRatings = { q1:null, q2:null, q3:null, q4:null, q5:null };
   
   function openSurvey() {
-    document.getElementById("surveyOverlay").classList.remove("hidden");
+    const el = document.getElementById("surveyOverlay");
+    el.classList.remove("hidden");
+    el.style.display = "flex"; // force visible even if some CSS conflicts exist
   }
   
   function closeSurvey() {
-    document.getElementById("surveyOverlay").classList.add("hidden");
+    const el = document.getElementById("surveyOverlay");
+    el.classList.add("hidden");
+    el.style.display = "none"; // force hidden
   }
+
   
   function buildScales() {
     document.querySelectorAll(".scale").forEach(scale => {
@@ -787,6 +792,7 @@ let surveyCompleted = localStorage.getItem(`survey_done_${clientSessionId}`) ===
   </script>
 </body>
 </html>
+
 
 
 
