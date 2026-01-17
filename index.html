@@ -264,21 +264,25 @@
    SURVEY: isolated styles (no collisions)
    =========================== */
 
-  #surveyOverlay.survey-overlay {
+/* ===========================
+   SURVEY: isolated styles (no collisions)
+   =========================== */
+
+  #surveyOverlay.survey-overlay{
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.6);
-    display: flex !important;
+    display: flex;
     align-items: center;
     justify-content: center;
     z-index: 99999; /* above everything */
   }
   
-  #surveyOverlay.survey-overlay.is-hidden {
+  #surveyOverlay.survey-overlay.is-hidden{
     display: none !important;
   }
   
-  #surveyOverlay .survey-modal {
+  #surveyOverlay .survey-modal{
     background: #fff;
     max-width: 720px;
     width: 92%;
@@ -288,11 +292,12 @@
     text-align: left;
   }
   
-  #surveyOverlay .q { margin: 14px 0; }
-  #surveyOverlay .scale button { margin-right: 8px; width: 40px; height: 36px; }
-  #surveyOverlay .scale button.selected { outline: 2px solid #000; }
-  #surveyOverlay .actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
-  #surveyOverlay .status { margin-top:10px; }
+  #surveyOverlay .q{ margin: 14px 0; }
+  #surveyOverlay .scale button{ margin-right: 8px; width: 40px; height: 36px; }
+  #surveyOverlay .scale button.selected{ outline: 2px solid #000; }
+  #surveyOverlay .actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
+  #surveyOverlay .status{ margin-top:10px; }
+
   
   
 
@@ -314,7 +319,7 @@
   
   <div class="container">
 
-    <div id="surveyOverlay" class="overlay hidden">
+    <div id="surveyOverlay" class="survey-overlay is-hidden">
       <div class="survey-modal">
         <h2>HR Chatbot Employee Experience Survey</h2>
         <p>Use the scale below to rate your experience</p>
@@ -343,9 +348,9 @@
           </div>
     
           <div class="actions">
-            <button type="button" id="surveySkipBtn">Skip</button>
-            <button type="submit" id="surveySubmitBtn">Submit</button>
+            <button id="surveySubmitBtn">Submit</button>
           </div>
+
           <div id="surveyStatus" class="status"></div>
         </form>
       </div>
@@ -462,7 +467,7 @@
       localStorage.getItem(`question_count_${clientSessionId}`) || "0"
     );
 
-    let surveyCompleted = localStorage.getItem(`survey_done_${clientSessionId}`) === "1";
+    let surveyCompleted = sessionStorage.getItem(`survey_done_${clientSessionId}`) === "1";
 
     // Prevent body scroll while modal open
     document.body.style.overflow = 'hidden';
@@ -699,15 +704,17 @@
   
   function openSurvey() {
     const el = document.getElementById("surveyOverlay");
-    el.classList.remove("hidden");
-    el.style.display = "flex"; // force visible even if some CSS conflicts exist
+    el.classList.remove("is-hidden");
+    // optional: prevent background scroll while survey is open
+    document.body.style.overflow = "hidden";
   }
   
   function closeSurvey() {
     const el = document.getElementById("surveyOverlay");
-    el.classList.add("hidden");
-    el.style.display = "none"; // force hidden
+    el.classList.add("is-hidden");
+    document.body.style.overflow = "auto";
   }
+
 
   
   function buildScales() {
@@ -733,12 +740,7 @@
   closeSurvey();
 
   
-  document.getElementById("surveySkipBtn").addEventListener("click", () => {
-    document.getElementById("surveyStatus").textContent =
-      "Please complete the survey to continue using the chatbot.";
-  });
-
-  
+ 
   document.getElementById("surveyForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const status = document.getElementById("surveyStatus");
@@ -772,7 +774,7 @@
 
       // Mark survey as completed for this session
       surveyCompleted = true;
-      localStorage.setItem(`survey_done_${clientSessionId}`, "1");
+      sessionStorage.setItem(`survey_done_${clientSessionId}`, "1");
       
       setTimeout(() => {
         closeSurvey();
@@ -800,6 +802,7 @@
   </script>
 </body>
 </html>
+
 
 
 
