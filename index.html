@@ -256,37 +256,45 @@
        =========================== */
     
     /* Overlay defaults to flex; JS hides it via .hidden */
-    #surveyOverlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      display: flex;              /* IMPORTANT: default is visible */
-      align-items: center;
-      justify-content: center;
-      z-index: 3000;              /* above everything (terms was 2000) */
-    }
-    
-    /* Hidden ALWAYS wins */
-    #surveyOverlay.hidden {
-      display: none !important;
-    }
-    
-    /* Survey modal */
-    .survey-modal {
-      background: #fff;
-      max-width: 720px;
-      width: 92%;
-      padding: 20px;
-      border-radius: 12px;
-      color: #111;
-      text-align: left;
-    }
-    
-    #surveyOverlay .q { margin: 14px 0; }
-    #surveyOverlay .scale button { margin-right: 8px; width: 40px; height: 36px; }
-    #surveyOverlay .scale button.selected { outline: 2px solid #000; }
-    #surveyOverlay .actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
-    #surveyOverlay .status { margin-top:10px; }
+/* ===========================
+   SURVEY: isolated styles (no collisions)
+   =========================== */
+
+/* ===========================
+   SURVEY: isolated styles (no collisions)
+   =========================== */
+
+  #surveyOverlay.survey-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999; /* above everything */
+  }
+  
+  #surveyOverlay.survey-overlay.is-hidden {
+    display: none !important;
+  }
+  
+  #surveyOverlay .survey-modal {
+    background: #fff;
+    max-width: 720px;
+    width: 92%;
+    padding: 20px;
+    border-radius: 12px;
+    color: #111;
+    text-align: left;
+  }
+  
+  #surveyOverlay .q { margin: 14px 0; }
+  #surveyOverlay .scale button { margin-right: 8px; width: 40px; height: 36px; }
+  #surveyOverlay .scale button.selected { outline: 2px solid #000; }
+  #surveyOverlay .actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
+  #surveyOverlay .status { margin-top:10px; }
+  
+  
 
 
     
@@ -454,7 +462,7 @@
       localStorage.getItem(`question_count_${clientSessionId}`) || "0"
     );
 
-let surveyCompleted = localStorage.getItem(`survey_done_${clientSessionId}`) === "1";
+    let surveyCompleted = localStorage.getItem(`survey_done_${clientSessionId}`) === "1";
 
     // Prevent body scroll while modal open
     document.body.style.overflow = 'hidden';
@@ -792,6 +800,7 @@ let surveyCompleted = localStorage.getItem(`survey_done_${clientSessionId}`) ===
   </script>
 </body>
 </html>
+
 
 
 
