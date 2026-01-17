@@ -436,7 +436,7 @@ Constraints:
 - subtopic must be 2–5 words.
 - confidence must be between 0 and 1.
 - alternate_topics must contain 0–3 items.
-- follow_up_question must be a single question ending with "?" and must be relevant to the answer.
+- follow_up_question must be a single question ending with "?" and must be relevant to the answer and should be rephrased into an actual question that the user would ask, not like a prompted question by the chatbot.
 - Output must be strictly valid JSON (double quotes, no trailing commas).
 """
 )
@@ -678,6 +678,7 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
 
