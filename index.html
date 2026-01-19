@@ -464,9 +464,10 @@
     const MAX_FREE_QUESTIONS = 2;
     
     let questionCount = parseInt(
-      localStorage.getItem(`question_count_${clientSessionId}`) || "0"
+      sessionStorage.getItem("question_count") || "0",
+      10
     );
-
+    
     let surveyCompleted = sessionStorage.getItem(`survey_done_${clientSessionId}`) === "1";
 
     // Prevent body scroll while modal open
@@ -609,7 +610,8 @@
       
       // Increment question count after successful answer (ONLY ONCE)
       questionCount += 1;
-      localStorage.setItem(`question_count_${clientSessionId}`, questionCount.toString());
+      sessionStorage.setItem("question_count", String(questionCount));
+
       
       // clear input
       document.getElementById("user-input").value = "";
@@ -802,6 +804,7 @@
   </script>
 </body>
 </html>
+
 
 
 
