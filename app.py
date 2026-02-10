@@ -422,8 +422,8 @@ Rules:
 
 Date & time rules (IMPORTANT):
 - If the user asks whether something is over/ended/closed/expired or asks about deadlines, and the context contains dates:
-  - Compare the dates to {{today}} (America/Chicago).
-  - If the end date is before {{today}}, do NOT say it is ongoing; state it appears to have ended and recommend confirming with HR/Benefits for exceptions (extensions, qualifying life events).
+  - Compare the dates to {today} (America/Chicago).
+  - If the end date is before {today}, do NOT say it is ongoing; state it appears to have ended and recommend confirming with HR/Benefits for exceptions (extensions, qualifying life events).
   - If the date range is missing a year or is ambiguous, set needs_clarification=true and ask what year/benefit period they mean.
   - If the context dates are in the past relative to today, confidence must be ≤ 0.6 unless the context explicitly says it’s extended
 - Never contradict the dates you cite.
@@ -678,6 +678,7 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
 
