@@ -447,8 +447,8 @@ llm_chain = LLMChain(llm=chat_model, prompt=prompt_template)
 def crossencoder_rerank_docs(
     question: str,
     docs: List[Document],
-    top_n: int = 6,
-    max_chunk_chars: int = 2000,
+    top_n: int = 10,
+    max_chunk_chars: int = 1500,
 ) -> List[Document]:
     """
     Use a cross-encoder model to score [question, chunk] pairs and
@@ -477,9 +477,9 @@ def crossencoder_rerank_docs(
 retriever = vectorstore.as_retriever(
     search_type="mmr",
     search_kwargs={
-        "k": 12,          # how many chunks you ultimately want to consider
-        "fetch_k": 40,    # how many to pull before MMR pruning (if supported)
-        "lambda_mult": 0.7,  # 0.0 = more diversity, 1.0 = more similarity
+        "k": 16,          # how many chunks you ultimately want to consider
+        "fetch_k": 60,    # how many to pull before MMR pruning (if supported)
+        "lambda_mult": 0.75,  # 0.0 = more diversity, 1.0 = more similarity
     },
 )
 
@@ -678,6 +678,7 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
 
