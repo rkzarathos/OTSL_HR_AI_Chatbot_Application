@@ -8,392 +8,725 @@
   <title>OTSL HR Chatbot</title>
   <link rel="stylesheet" href="/static/style.css">
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       display: flex;
       justify-content: flex-start;
       align-items: center;
-      min-height: 100vh;
+      min-height: 100dvh;
       background-color: #121212;
       color: white;
       text-align: center;
       flex-direction: column;
       overflow-y: auto;
-      padding-top: 20px;
-      font-size: 18px; /* increased from 17px */
+      padding: 16px 0 24px;
+      font-size: 18px;
     }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
     .container {
-      width: 80%;
-      max-width: 1000px;
+      width: min(1000px, 94%);
       position: relative;
       z-index: 1;
     }
 
-    /* --- Logo wrapper (rounded white box) --- */
+    .topbar {
+      width: min(1100px, 96%);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0 14px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(18,18,18,0.92);
+      backdrop-filter: blur(8px);
+    }
+
+    .topbar-left,
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .topbar-btn,
+    button {
+      padding: 10px 14px;
+      border: none;
+      background-color: transparent;
+      color: inherit;
+      cursor: pointer;
+      border-radius: 8px;
+      border: 1px solid currentColor;
+      font-size: 16px;
+      min-height: 44px;
+    }
+
+    .theme-toggle {
+      position: static;
+      background-color: transparent;
+    }
+
     .logo-wrapper {
       display: inline-block;
       background: #ffffff;
       border-radius: 16px;
       padding: 10px 14px;
       box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
+
     .logo {
       width: 150px;
       height: auto;
       display: block;
     }
 
-    button {
-      padding: 10px 15px;
-      border: none;
-      background-color: transparent;
-      color: inherit;
-      cursor: pointer;
-      border-radius: 5px;
-      border: 1px solid currentColor;
+    h1 {
+      font-size: clamp(1.5rem, 4vw, 2.2rem);
+      margin: 8px 0 14px;
     }
-    .theme-toggle {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background-color: transparent;
-    }
+
     .question-buttons {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
       margin-bottom: 20px;
     }
+
+    .question-buttons button {
+      text-align: left;
+      white-space: normal;
+      word-break: break-word;
+      line-height: 1.35;
+    }
+
     .collapsible {
       background-color: transparent;
       color: inherit;
       cursor: pointer;
-      padding: 10px;
+      padding: 12px;
       border: 1px solid currentColor;
       text-align: left;
       width: 100%;
       margin-top: 10px;
     }
+
     .collapsible-content {
       display: none;
-      padding: 10px;
+      padding: 12px;
       background-color: #222;
       max-height: 350px;
       overflow-y: auto;
+      text-align: left;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
+      border-radius: 8px;
     }
+
+    .input-container {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+      width: 100%;
+    }
+
     #user-input {
       width: 100%;
-      padding: 10px;
-      font-size: 18px; /* increased from 16px */
+      padding: 12px 14px;
+      font-size: 18px;
       margin-bottom: 10px;
+      border-radius: 10px;
+      border: 1px solid #666;
+      min-height: 48px;
     }
+
     .mic-button {
       background: none;
-      border: none;
       cursor: pointer;
       color: white;
-      font-size: 25px; /* increased from 24px */
-      margin-left: 10px;
+      font-size: 24px;
+      min-width: 52px;
+      min-height: 48px;
+      margin-left: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
+
     .mic-button:focus {
-      outline: none;
+      outline: 2px solid #fff;
+      outline-offset: 2px;
     }
+
+    .submit-btn {
+      width: 100%;
+      margin-top: 2px;
+    }
+
+    #response-container,
+    #followup-container {
+      text-align: left;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .followup-container {
+      margin-top: 10px;
+    }
+
+    .followup-btn {
+      width: 100%;
+      text-align: left;
+      white-space: normal;
+      line-height: 1.4;
+    }
+
     #audio-player {
       width: 100%;
       margin-top: 10px;
     }
+
     .light-mode {
       background-color: #f9f9f9;
       color: black;
     }
+
+    .light-mode .topbar {
+      background: rgba(249,249,249,0.92);
+    }
+
     .light-mode .collapsible-content {
       background-color: #fff;
       color: black;
     }
-    
-    /* Sidebar styles */
+
+    .tiny-disclaimer {
+      font-size: 12px;
+      color: #bdbdbd;
+      margin: 4px 0 12px;
+      text-align: left;
+    }
+
+    .light-mode .tiny-disclaimer {
+      color: #555;
+    }
+
+    /* Sidebar */
+    .sidebar-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 1190;
+    }
+
+    .sidebar-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
     .sidebar {
       position: fixed;
       top: 0;
       bottom: 0;
-      width: 300px;
+      width: min(380px, 92vw);
       background-color: #1e1e1e;
       color: white;
       overflow-y: auto;
       transition: transform 0.3s ease;
-      padding: 20px;
-      z-index: 1200; /* covers toggle buttons */
+      padding: 20px 18px 24px;
+      z-index: 1200;
+      text-align: left;
+      box-shadow: 0 0 24px rgba(0,0,0,0.35);
     }
+
     .sidebar.left {
       left: 0;
       transform: translateX(-100%);
     }
+
     .sidebar.right {
       right: 0;
       transform: translateX(100%);
     }
+
     .sidebar.open {
       transform: translateX(0);
     }
+
     .close-btn {
       background: none;
       border: none;
       color: white;
-      font-size: 21px; /* increased from 20px */
+      font-size: 24px;
       cursor: pointer;
       position: absolute;
       top: 10px;
       right: 10px;
+      min-width: 44px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
-    /* For the Feedback sidebar, position close button at top left */
+
     #feedback-sidebar .close-btn {
       left: 10px;
       right: auto;
     }
-    .sidebar-toggle {
-      padding: 8px 12px;
-      background-color: #333;
-      border: none;
-      color: white;
-      cursor: pointer;
-      border-radius: 5px;
-      position: fixed;
-      top: 20px;
-      z-index: 1100;
-    }
-    .sidebar-toggle.left {
-      left: 20px;
-    }
-    /* --- Lower the Feedback toggle to avoid overlap --- */
-    .sidebar-toggle.right {
-      right: 20px;
-      top: 100px; /* was 60px */
-    }
-    @media (max-width: 480px) {
-      .sidebar-toggle.right { top: 130px; }
-    }
 
-    /* Feedback panel elements */
     #feedback-input {
       width: 100%;
-      height: 80px;
+      min-height: 120px;
       margin-top: 20px;
-      padding: 10px;
-      font-size: 17px; /* increased from 16px */
+      padding: 12px;
+      font-size: 17px;
       box-sizing: border-box;
+      border-radius: 8px;
+      resize: vertical;
     }
+
     #feedback-submit {
       margin-top: 10px;
-      padding: 8px 12px;
+      padding: 10px 14px;
       background-color: #333;
       border: none;
       color: white;
       cursor: pointer;
-      border-radius: 5px;
+      border-radius: 8px;
+      width: 100%;
     }
 
-    /* --- Terms & Conditions Modal --- */
+    /* Terms modal */
     .modal-overlay {
       position: fixed;
       inset: 0;
+      padding: 12px;
       background: rgba(0,0,0,0.65);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 2000; /* sits above everything */
+      z-index: 2000;
+      overflow-y: auto;
     }
+
     .modal {
       background: #ffffff;
       color: #111;
-      width: 90%;
-      max-width: 960px;
-      max-height: 88vh;
+      width: min(960px, 100%);
+      max-height: calc(100dvh - 24px);
       border-radius: 14px;
-      padding: 24px 26px;
       box-shadow: 0 24px 64px rgba(0,0,0,0.5);
       overflow: hidden;
       text-align: left;
+      display: flex;
+      flex-direction: column;
     }
-    .modal h2 { margin: 0 0 10px; }
+
+    .modal-header {
+      padding: 22px 22px 10px;
+      flex: 0 0 auto;
+    }
+
+    .modal-body {
+      padding: 0 22px 0;
+      overflow-y: auto;
+      flex: 1 1 auto;
+    }
+
     .terms-text {
       background: #f5f5f5;
       color: #111;
       border-radius: 10px;
       padding: 12px;
-      max-height: 60vh;
-      overflow-y: auto;
       line-height: 1.45;
       font-size: 15px;
+      overflow-wrap: anywhere;
     }
+
+    .modal-footer {
+      padding: 12px 22px 18px;
+      background: #fff;
+      border-top: 1px solid #ddd;
+      flex: 0 0 auto;
+    }
+
     .accept-row {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 10px;
-      margin-top: 12px;
+      margin-top: 0;
+      margin-bottom: 10px;
     }
+
     #accept-button {
-      margin-top: 10px;
-      padding: 10px 16px;
+      padding: 12px 16px;
       background: #333;
       color: #fff;
       border-radius: 8px;
       border: none;
       cursor: pointer;
+      width: 100%;
     }
+
     #accept-button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
-    .tiny-disclaimer{
-      font-size:12px;
-      color:#bdbdbd;
-      margin:4px 0 12px;
+
+    .sticky-actions {
+      position: sticky;
+      bottom: 0;
+      z-index: 2;
     }
-    .light-mode .tiny-disclaimer{ color:#555; }
 
-    /* ===========================
-       SURVEY: bulletproof show/hide
-       =========================== */
-    
-    /* Overlay defaults to flex; JS hides it via .hidden */
-/* ===========================
-   SURVEY: isolated styles (no collisions)
-   =========================== */
+    /* Survey modal */
+    #surveyOverlay.survey-overlay {
+      position: fixed;
+      inset: 0;
+      padding: 12px;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      overflow-y: auto;
+    }
 
-/* ===========================
-   SURVEY: isolated styles (no collisions)
-   =========================== */
+    #surveyOverlay.survey-overlay.is-hidden {
+      display: none !important;
+    }
 
-/* ===========================
-   SURVEY: isolated styles (no collisions)
-   =========================== */
+    #surveyOverlay .survey-modal {
+      background: #fff;
+      color: #111;
+      width: min(720px, 100%);
+      max-height: calc(100dvh - 24px);
+      border-radius: 12px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+    }
 
-  #surveyOverlay.survey-overlay{
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 99999; /* above everything */
-  }
-  
-  #surveyOverlay.survey-overlay.is-hidden{
-    display: none !important;
-  }
-  
-  #surveyOverlay .survey-modal{
-    background: #fff;
-    max-width: 720px;
-    width: 92%;
-    padding: 20px;
-    border-radius: 12px;
-    color: #111;
-    text-align: left;
-  }
-  
-  #surveyOverlay .q{ margin: 14px 0; }
-  #surveyOverlay .scale button{ margin-right: 8px; width: 40px; height: 36px; }
-  #surveyOverlay .scale button.selected{ outline: 2px solid #000; }
-  #surveyOverlay .actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
-  #surveyOverlay .status{ margin-top:10px; }
+    #surveyOverlay .survey-header {
+      padding: 18px 18px 10px;
+      flex: 0 0 auto;
+    }
 
-  
-  
+    #surveyOverlay .survey-body {
+      padding: 0 18px 8px;
+      overflow-y: auto;
+      flex: 1 1 auto;
+    }
 
+    #surveyOverlay .survey-scale-legend {
+      line-height: 1.4;
+    }
 
-    
+    #surveyOverlay .q {
+      margin: 14px 0;
+    }
+
+    #surveyOverlay .q label {
+      display: block;
+      margin-bottom: 10px;
+      line-height: 1.45;
+    }
+
+    #surveyOverlay .scale {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    #surveyOverlay .scale button {
+      width: 46px;
+      height: 42px;
+      min-width: 46px;
+      min-height: 42px;
+      margin-right: 0;
+    }
+
+    #surveyOverlay .scale button.selected {
+      outline: 2px solid #000;
+    }
+
+    #surveyOverlay .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: stretch;
+      margin-top: 0;
+      background: #fff;
+      border-top: 1px solid #ddd;
+      padding: 12px 18px 18px;
+    }
+
+    #surveyOverlay .actions button {
+      width: 100%;
+    }
+
+    #surveyOverlay .status {
+      margin-top: 10px;
+      min-height: 24px;
+    }
+
+    /* Response / markdown safety */
+    #response-container p,
+    #response-container li,
+    #response-container div,
+    #chat-history-content,
+    #document-sources {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    #response-container pre,
+    #response-container code {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .history-entry {
+      border-bottom: 1px solid #444;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+    }
+
+    .history-entry .history-q,
+    .history-entry .history-a {
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .history-entry .history-a {
+      opacity: 0.92;
+    }
+
+    /* Tablet */
+    @media (max-width: 768px) {
+      body {
+        font-size: 16px;
+        padding-top: 10px;
+      }
+
+      .container {
+        width: 94%;
+      }
+
+      .logo {
+        width: 124px;
+      }
+
+      .question-buttons {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        width: 94%;
+        gap: 8px;
+        align-items: flex-start;
+      }
+
+      .topbar-left,
+      .topbar-right {
+        gap: 8px;
+      }
+
+      .modal-header,
+      .modal-body,
+      .modal-footer,
+      #surveyOverlay .survey-header,
+      #surveyOverlay .survey-body,
+      #surveyOverlay .actions {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+    }
+
+    /* Small phones */
+    @media (max-width: 480px) {
+      .topbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .topbar-left,
+      .topbar-right {
+        width: 100%;
+        justify-content: stretch;
+      }
+
+      .topbar-btn {
+        flex: 1 1 auto;
+        width: 100%;
+      }
+
+      .input-container {
+        flex-direction: row;
+        align-items: stretch;
+      }
+
+      #user-input {
+        font-size: 16px;
+      }
+
+      .mic-button {
+        min-width: 50px;
+      }
+
+      .sidebar {
+        width: 100vw;
+        max-width: 100vw;
+        padding: 18px 14px 24px;
+      }
+
+      .modal-overlay,
+      #surveyOverlay.survey-overlay {
+        padding: 8px;
+      }
+
+      .modal,
+      #surveyOverlay .survey-modal {
+        max-height: calc(100dvh - 16px);
+        border-radius: 10px;
+      }
+
+      #surveyOverlay .scale button {
+        width: 44px;
+        height: 40px;
+      }
+    }
   </style>
 </head>
 <body>
-  <!-- Sidebar Toggle Buttons (remain fixed, but are overlapped when sidebar opens) -->
-  <button class="sidebar-toggle left" onclick="toggleSidebar('chat-history-sidebar')">Chat History</button>
-  <button class="sidebar-toggle right" onclick="toggleSidebar('feedback-sidebar')">Feedback</button>
-  
-  <button class="theme-toggle">Toggle Theme</button>
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="topbar-btn" onclick="toggleSidebar('chat-history-sidebar')" aria-label="Open chat history">
+        Chat History
+      </button>
+    </div>
+
+    <div class="topbar-right">
+      <button class="topbar-btn" onclick="toggleSidebar('feedback-sidebar')" aria-label="Open feedback panel">
+        Feedback
+      </button>
+      <button class="topbar-btn theme-toggle" aria-label="Toggle theme">
+        Theme
+      </button>
+    </div>
+  </header>
 
   <!-- Logo in rounded white container -->
   <div class="logo-wrapper">
     <img src="/logo" alt="Company Logo" class="logo">
   </div>
-  
+
   <div class="container">
+    <div id="surveyOverlay" class="survey-overlay is-hidden" aria-modal="true" role="dialog" aria-labelledby="surveyTitle">
+      <div class="survey-modal" tabindex="-1">
+        <div class="survey-header">
+          <h2 id="surveyTitle">HR Chatbot Employee Experience Survey</h2>
+          <p>Use the scale below to rate your experience</p>
+          <p class="survey-scale-legend">
+            <b>1</b>=Strongly Disagree · <b>2</b>=Disagree · <b>3</b>=Neutral · <b>4</b>=Agree · <b>5</b>=Strongly Agree
+          </p>
+        </div>
 
-    <div id="surveyOverlay" class="survey-overlay is-hidden">
-      <div class="survey-modal">
-        <h2>HR Chatbot Employee Experience Survey</h2>
-        <p>Use the scale below to rate your experience</p>
-        <p><b>1</b>=Strongly Disagree · <b>2</b>=Disagree · <b>3</b>=Neutral · <b>4</b>=Agree · <b>5</b>=Strongly Agree</p>
-    
         <form id="surveyForm">
-          <div class="q">
-            <label>I feel more empowered to access HR information independently because of the chatbot</label>
-            <div class="scale" data-q="q1"></div>
-          </div>
-          <div class="q">
-            <label>My question was resolved by the chatbot without HR or Management involvement</label>
-            <div class="scale" data-q="q2"></div>
-          </div>
-          <div class="q">
-            <label>Using the chatbot saved me time compared to contacting HR directly</label>
-            <div class="scale" data-q="q3"></div>
-          </div>
-          <div class="q">
-            <label>The chatbot covered the HR topics I needed (leave, payroll, policies, benefits)</label>
-            <div class="scale" data-q="q4"></div>
-          </div>
-          <div class="q">
-            <label>The chatbot provided accurate information</label>
-            <div class="scale" data-q="q5"></div>
-          </div>
-    
-          <div class="actions">
-            <button id="surveySubmitBtn">Submit</button>
+          <div class="survey-body">
+            <div class="q">
+              <label>I feel more empowered to access HR information independently because of the chatbot</label>
+              <div class="scale" data-q="q1"></div>
+            </div>
+            <div class="q">
+              <label>My question was resolved by the chatbot without HR or Management involvement</label>
+              <div class="scale" data-q="q2"></div>
+            </div>
+            <div class="q">
+              <label>Using the chatbot saved me time compared to contacting HR directly</label>
+              <div class="scale" data-q="q3"></div>
+            </div>
+            <div class="q">
+              <label>The chatbot covered the HR topics I needed (leave, payroll, policies, benefits)</label>
+              <div class="scale" data-q="q4"></div>
+            </div>
+            <div class="q">
+              <label>The chatbot provided accurate information</label>
+              <div class="scale" data-q="q5"></div>
+            </div>
+
+            <div id="surveyStatus" class="status" aria-live="polite"></div>
           </div>
 
-          <div id="surveyStatus" class="status"></div>
+          <div class="actions sticky-actions">
+            <button id="surveySubmitBtn" type="submit">Submit</button>
+          </div>
         </form>
       </div>
     </div>
 
-    
     <h1>OTSL.ai: Ask me Anything...</h1>
+
     <div class="question-buttons">
-      <button onclick="document.getElementById('user-input').value='What\'s the company\'s travel policy?'">What's the company's travel policy?</button>
+      <button onclick="document.getElementById('user-input').value='What\\'s the company\\'s travel policy?'">What's the company's travel policy?</button>
       <button onclick="document.getElementById('user-input').value='What is the performance management process?'">What is the performance management process?</button>
       <button onclick="document.getElementById('user-input').value='How do I request for PTO?'">How do I request for PTO?</button>
       <button onclick="document.getElementById('user-input').value='Which company do we use for our medical insurance?'">Which company do we use for our medical insurance?</button>
     </div>
+
     <p class="tiny-disclaimer" id="prompt-disclaimer">
       <strong>Disclaimer:</strong> This information is general and may not reflect current laws or Company policies. Please verify with HR and review official policies.
     </p>
+
     <form id="chat-form">
       <div class="input-container">
         <input type="text" id="user-input" placeholder="Enter the question..." required>
-        <button type="button" class="mic-button" id="mic-button">🎤</button>
+        <button type="button" class="mic-button" id="mic-button" aria-label="Use voice input">🎤</button>
       </div>
-      <button type="submit">Submit</button>
-
+      <button type="submit" class="submit-btn">Submit</button>
     </form>
+
     <div id="response-container"></div>
-    <div id="followup-container" style="margin-top:10px;"></div>
+    <div id="followup-container" class="followup-container"></div>
     <audio id="audio-player" controls></audio>
+
     <button class="collapsible">Document Sources</button>
     <div class="collapsible-content" id="document-sources"></div>
   </div>
-  
+
+  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="closeAllSidebars()"></div>
+
   <!-- Chat History Sidebar -->
-  <div id="chat-history-sidebar" class="sidebar left">
-    <button class="close-btn" onclick="toggleSidebar('chat-history-sidebar')">×</button>
+  <div id="chat-history-sidebar" class="sidebar left" aria-label="Chat history panel">
+    <button class="close-btn" onclick="toggleSidebar('chat-history-sidebar')" aria-label="Close chat history">×</button>
     <h3>Chat History</h3>
     <div id="chat-history-content">
       <p>No chat history available.</p>
     </div>
   </div>
-  
+
   <!-- Feedback Sidebar -->
-  <div id="feedback-sidebar" class="sidebar right">
-    <button class="close-btn" onclick="toggleSidebar('feedback-sidebar')">×</button>
+  <div id="feedback-sidebar" class="sidebar right" aria-label="Feedback panel">
+    <button class="close-btn" onclick="toggleSidebar('feedback-sidebar')" aria-label="Close feedback">×</button>
     <h3>Feedback</h3>
     <div id="feedback-content">
       <p>Please provide your feedback for the last response:</p>
@@ -403,106 +736,166 @@
     </div>
   </div>
 
-  <!-- Terms & Conditions Modal (shown every session) -->
-  <div id="terms-modal" class="modal-overlay" aria-modal="true" role="dialog">
-    <div class="modal">
-      <h2 style="text-align:center">Terms &amp; Conditions</h2>
-      <div class="terms-text" id="terms-text">
-        <h4 style="text-align:center">General Information Only</h4>
-        <ul>
-          <li>The chatbot is provided for general informational purposes only.</li>
-          <li>Information shared may not reflect the most current laws, regulations, or Company policies.</li>
-          <li>The chatbot’s responses are not legal, medical, or financial advice.</li>
-        </ul>  
-
-        <h4 style="text-align:center">No Rights Created</h4>
-        <ul>
-          <li>Use of this chatbot does not create any rights, guarantees, or obligations for the Company, its employees, or any other party.</li>
-          <li>Employees should not rely solely on this tool when making employment, benefits, or policy-related decisions.</li>
-        </ul>
-
-        <h4 style="text-align:center">Check Official Sources</h4>
-        <ul>
-          <li>Always confirm details with Human Resources and review official Company policies and plan documents before making decisions.</li>
-          <li>The Company reserves the right to interpret, modify, or update its policies at any time.</li>
-        </ul>
-        
-        <h4 style="text-align:center">Conversation Records</h4>
-        <ul>
-          <li>Chatbot conversations may be monitored and logged for training, compliance, and quality assurance.</li>
-          <li>These records are not part of your official personnel file and will not be used as the basis for employment decisions.</li>
-          <li>For matters that require formal documentation, please contact Human Resources directly.</li>
-        </ul>
-
+  <!-- Terms & Conditions Modal -->
+  <div id="terms-modal" class="modal-overlay" aria-modal="true" role="dialog" aria-labelledby="termsTitle">
+    <div class="modal" tabindex="-1">
+      <div class="modal-header">
+        <h2 id="termsTitle" style="text-align:center">Terms &amp; Conditions</h2>
       </div>
-      <label class="accept-row">
-        <input type="checkbox" id="accept-checkbox"> I have read and accept the Terms &amp; Conditions
-      </label>
-      <button id="accept-button" disabled>Accept &amp; Continue</button>
+
+      <div class="modal-body">
+        <div class="terms-text" id="terms-text">
+          <h4 style="text-align:center">General Information Only</h4>
+          <ul>
+            <li>The chatbot is provided for general informational purposes only.</li>
+            <li>Information shared may not reflect the most current laws, regulations, or Company policies.</li>
+            <li>The chatbot’s responses are not legal, medical, or financial advice.</li>
+          </ul>
+
+          <h4 style="text-align:center">No Rights Created</h4>
+          <ul>
+            <li>Use of this chatbot does not create any rights, guarantees, or obligations for the Company, its employees, or any other party.</li>
+            <li>Employees should not rely solely on this tool when making employment, benefits, or policy-related decisions.</li>
+          </ul>
+
+          <h4 style="text-align:center">Check Official Sources</h4>
+          <ul>
+            <li>Always confirm details with Human Resources and review official Company policies and plan documents before making decisions.</li>
+            <li>The Company reserves the right to interpret, modify, or update its policies at any time.</li>
+          </ul>
+
+          <h4 style="text-align:center">Conversation Records</h4>
+          <ul>
+            <li>Chatbot conversations may be monitored and logged for training, compliance, and quality assurance.</li>
+            <li>These records are not part of your official personnel file and will not be used as the basis for employment decisions.</li>
+            <li>For matters that require formal documentation, please contact Human Resources directly.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="modal-footer sticky-actions">
+        <label class="accept-row">
+          <input type="checkbox" id="accept-checkbox"> I have read and accept the Terms &amp; Conditions
+        </label>
+        <button id="accept-button" disabled>Accept &amp; Continue</button>
+      </div>
     </div>
   </div>
-  
+
   <script>
     // Global variables to store current question and answer for feedback
     let currentQuestion = "";
     let currentAnswer = "";
     let currentLogId = "";
     let currentSessionId = "";
-    
+
     let clientSessionId = localStorage.getItem("client_session_id");
     if (!clientSessionId) {
       clientSessionId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
       localStorage.setItem("client_session_id", clientSessionId);
     }
 
-    // Terms flag (forces acceptance every session/page load)
+    // Terms flag
     let termsAccepted = false;
 
-    // =======================
     // Survey gating settings
-    // =======================
     const MAX_FREE_QUESTIONS = 2;
-    
+
     let questionCount = parseInt(
       sessionStorage.getItem("question_count") || "0",
       10
     );
-    
+
     let surveyCompleted = sessionStorage.getItem(`survey_done_${clientSessionId}`) === "1";
 
-    // Prevent body scroll while modal open
-    document.body.style.overflow = 'hidden';
+    function lockBodyScroll() {
+      document.body.classList.add("modal-open");
+    }
+
+    function unlockBodyScrollIfSafe() {
+      const termsEl = document.getElementById("terms-modal");
+      const surveyEl = document.getElementById("surveyOverlay");
+      const termsVisible = termsEl && getComputedStyle(termsEl).display !== "none";
+      const surveyVisible = surveyEl && !surveyEl.classList.contains("is-hidden");
+      const sidebarOpen = document.querySelector(".sidebar.open");
+
+      if (!termsVisible && !surveyVisible && !sidebarOpen) {
+        document.body.classList.remove("modal-open");
+      }
+    }
+
+    function openBackdrop() {
+      document.getElementById("sidebar-backdrop").classList.add("open");
+    }
+
+    function closeBackdrop() {
+      document.getElementById("sidebar-backdrop").classList.remove("open");
+    }
+
+    function closeAllSidebars() {
+      document.querySelectorAll(".sidebar.open").forEach(el => el.classList.remove("open"));
+      closeBackdrop();
+      unlockBodyScrollIfSafe();
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    // Prevent body scroll while initial terms modal is open
+    lockBodyScroll();
 
     // Theme Toggle Functionality
     document.querySelector(".theme-toggle").addEventListener("click", function() {
       document.body.classList.toggle("light-mode");
     });
-    
+
     // Collapsible Section Functionality for Document Sources
     document.querySelector(".collapsible").addEventListener("click", function() {
       let content = document.getElementById("document-sources");
       content.style.display = (content.style.display === "block") ? "none" : "block";
     });
-    
-    // Sidebar toggle function (blocked until T&C accepted)
+
+    // Sidebar toggle function
     function toggleSidebar(id) {
       if (!termsAccepted) {
         alert("Please accept the Terms & Conditions to use the chatbot.");
         return;
       }
-      // ===== Survey gate =====
+
       if (!surveyCompleted && questionCount >= MAX_FREE_QUESTIONS) {
         openSurvey();
         return;
       }
-      let sidebar = document.getElementById(id);
-      sidebar.classList.toggle("open");
+
+      const target = document.getElementById(id);
+      const isOpening = !target.classList.contains("open");
+
+      document.querySelectorAll(".sidebar.open").forEach(el => el.classList.remove("open"));
+
+      if (isOpening) {
+        target.classList.add("open");
+        openBackdrop();
+        lockBodyScroll();
+      } else {
+        closeBackdrop();
+        unlockBodyScrollIfSafe();
+      }
     }
-    
-    // Voice Recognition Functionality (blocked until T&C accepted)
+
+    // Voice Recognition Functionality
     document.getElementById("mic-button").addEventListener("click", function() {
       if (!termsAccepted) {
         alert("Please accept the Terms & Conditions to use the chatbot.");
+        return;
+      }
+      if (!surveyCompleted && questionCount >= MAX_FREE_QUESTIONS) {
+        openSurvey();
         return;
       }
       let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -517,292 +910,294 @@
         alert("Voice recognition error. Please try again.");
       };
     });
-    
-    // Chatbot Form Handling (blocked until T&C accepted)
+
+    // Chatbot Form Handling
     document.getElementById("chat-form").addEventListener("submit", async function(event) {
       event.preventDefault();
       if (!termsAccepted) {
         alert("Please accept the Terms & Conditions to start chatting.");
         return;
       }
-        // ===== Survey gate (ADD THIS) =====
       if (!surveyCompleted && questionCount >= MAX_FREE_QUESTIONS) {
         openSurvey();
         return;
       }
+
       let userInput = document.getElementById("user-input").value;
-      currentQuestion = userInput; // set the current question for feedback
+      currentQuestion = userInput;
+
       let responseContainer = document.getElementById("response-container");
       let audioPlayer = document.getElementById("audio-player");
       let docSources = document.getElementById("document-sources");
-      
-      // Clear previous responses, audio, and document sources
+
       responseContainer.innerHTML = "";
       audioPlayer.src = "";
       docSources.innerHTML = "";
       document.getElementById("followup-container").innerHTML = "";
-      
+
       responseContainer.innerHTML = "<p>Loading...</p>";
-      
+
       try {
         let response = await fetch("/ask", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question: userInput, session_id: clientSessionId })
         });
-        
+
         if (!response.ok) {
           throw new Error(`Server error: ${response.status} ${response.statusText}`);
         }
-        
-        responseContainer.innerHTML = "<p><strong>Answer:</strong> </p><p id='chat-response'></p>";
+
+        responseContainer.innerHTML = "<p><strong>Answer:</strong></p><p id='chat-response'></p>";
         let chatResponse = document.getElementById("chat-response");
 
-        //---------------------------------------------------------
         const data = await response.json();
-        
-        // display
 
         const answerText = data.answer || "";
         chatResponse.innerHTML = marked.parse(answerText);
+
         const followupContainer = document.getElementById("followup-container");
-        followupContainer.innerHTML = ""; // clear previous
-        
+        followupContainer.innerHTML = "";
+
         const followUp = (data.follow_up_question || "").trim();
-        
+
         if (followUp) {
+          const displayFollowUp = followUp.length > 180 ? followUp.slice(0, 180) + "..." : followUp;
+
           followupContainer.innerHTML = `
-            <button type="button" id="followup-btn" style="margin-top:8px;">
-              Ask follow-up: ${followUp}
+            <button type="button" id="followup-btn" class="followup-btn" title="${escapeHtml(followUp)}">
+              Ask follow-up: ${escapeHtml(displayFollowUp)}
             </button>
           `;
-        
+
           document.getElementById("followup-btn").addEventListener("click", () => {
             document.getElementById("user-input").value = followUp;
-            // submit the form programmatically
             document.getElementById("chat-form").dispatchEvent(new Event("submit", { cancelable: true }));
           });
         }
-        // audio
+
         const audioUrl = data.audio_url || "";
         if (audioUrl) {
           audioPlayer.src = audioUrl;
         }
-        
-        // log/session for feedback
+
         currentLogId = data.log_id || "";
         currentSessionId = data.session_id || clientSessionId;
-        
-        // doc sources (your backend doesn't send sources currently; safe no-op)
+
         const sources = data.sources || [];
         if (sources.length > 0) {
-          docSources.innerHTML = "<h3>Sources:</h3>" + sources.map(s => `<p>${s}</p>`).join("");
+          docSources.innerHTML = "<h3>Sources:</h3>" + sources.map(s => `<p>${escapeHtml(s)}</p>`).join("");
         } else {
           docSources.innerHTML = "";
         }
-        
-      // store answer for chat history + feedback
-      currentAnswer = answerText;
-      document.getElementById("feedback-status").innerHTML = "";
-      document.getElementById("feedback-input").value = "";
-      
-      updateChatHistory(currentQuestion, currentAnswer);
-      
-      // Increment question count after successful answer (ONLY ONCE)
-      questionCount += 1;
-      sessionStorage.setItem("question_count", String(questionCount));
 
-      
-      // clear input
-      document.getElementById("user-input").value = "";
+        currentAnswer = answerText;
+        document.getElementById("feedback-status").innerHTML = "";
+        document.getElementById("feedback-input").value = "";
+
+        updateChatHistory(currentQuestion, currentAnswer);
+
+        questionCount += 1;
+        sessionStorage.setItem("question_count", String(questionCount));
+
+        document.getElementById("user-input").value = "";
       } catch (error) {
-        responseContainer.innerHTML = `<p style='color: red;'>Error: ${error.message}</p>`;
+        responseContainer.innerHTML = `<p style='color: red;'>Error: ${escapeHtml(error.message)}</p>`;
       }
     });
-    
+
     // Function to update chat history sidebar
     function updateChatHistory(question, answer) {
-      let historyContainer = document.getElementById("chat-history-content");
+      const historyContainer = document.getElementById("chat-history-content");
+
       if (historyContainer.innerHTML.includes("No chat history available.")) {
         historyContainer.innerHTML = "";
       }
-      let entry = document.createElement("div");
-      entry.style.borderBottom = "1px solid #444";
-      entry.style.marginBottom = "10px";
-      entry.style.paddingBottom = "10px";
-      entry.innerHTML = `<strong>Q:</strong> ${question}<br><strong>A:</strong> ${answer}`;
-      historyContainer.appendChild(entry);
+
+      const entry = document.createElement("div");
+      entry.className = "history-entry";
+
+      const truncatedAnswer = answer.length > 220 ? answer.slice(0, 220) + "..." : answer;
+
+      entry.innerHTML = `
+        <div class="history-q"><strong>Q:</strong> ${escapeHtml(question)}</div>
+        <div class="history-a"><strong>A:</strong> ${escapeHtml(truncatedAnswer)}</div>
+      `;
+
+      historyContainer.prepend(entry);
     }
-    
+
     // Feedback submission handling
-  document.getElementById("feedback-submit").addEventListener("click", async function() {
-    if (!termsAccepted) {
-      alert("Please accept the Terms & Conditions to use the chatbot.");
-      return;
-    }
-  
-    let feedbackInput = document.getElementById("feedback-input");
-    let feedbackText = feedbackInput.value.trim();
-    let feedbackStatus = document.getElementById("feedback-status");
-  
-    if (!feedbackText) {
-      feedbackStatus.innerHTML = "<p style='color: red;'>Please enter feedback.</p>";
-      return;
-    }
-  
-    if (!currentLogId) {
-      feedbackStatus.innerHTML =
-        "<p style='color: red;'>No response ID found yet. Ask a question first, then submit feedback.</p>";
-      return;
-    }
-  
-    console.log("Submitting feedback payload:", {
-      feedback: feedbackText,
-      log_id: currentLogId,
-      session_id: clientSessionId
-    });
-
-  
-    try {
-      let response = await fetch("/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          feedback: feedbackText,
-          log_id: currentLogId,
-          session_id: clientSessionId
-        })
-      });
-  
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
-      }
-  
-      let result = await response.json();
-      feedbackStatus.innerHTML =
-        `<p style='color: green;'>${result.message || "Feedback submitted successfully."}</p>`;
-      feedbackInput.value = "";
-    } catch (error) {
-      feedbackStatus.innerHTML = `<p style='color: red;'>${error.message}</p>`;
-    }
-  });
-
-    /* --- Terms & Conditions modal wiring --- */
-      const termsModal = document.getElementById("terms-modal");
-      const acceptCheckbox = document.getElementById("accept-checkbox");
-      const acceptButton = document.getElementById("accept-button");
-  
-      acceptCheckbox.addEventListener("change", () => {
-        acceptButton.disabled = !acceptCheckbox.checked;
-      });
-  
-      acceptButton.addEventListener("click", () => {
-        termsAccepted = true;
-        termsModal.style.display = "none";
-        document.body.style.overflow = 'auto';
-      });
-  
-      let surveyRatings = { q1:null, q2:null, q3:null, q4:null, q5:null };
-  
-  function openSurvey() {
-    const el = document.getElementById("surveyOverlay");
-    el.classList.remove("is-hidden");
-    // optional: prevent background scroll while survey is open
-    document.body.style.overflow = "hidden";
-  }
-  
-  function closeSurvey() {
-    const el = document.getElementById("surveyOverlay");
-    el.classList.add("is-hidden");
-    document.body.style.overflow = "auto";
-  }
-
-
-  
-  function buildScales() {
-    document.querySelectorAll(".scale").forEach(scale => {
-      const qKey = scale.getAttribute("data-q");
-      scale.innerHTML = "";
-      for (let i=1; i<=5; i++) {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.textContent = i;
-        btn.addEventListener("click", () => {
-          surveyRatings[qKey] = i;
-          // UI highlight
-          [...scale.querySelectorAll("button")].forEach(b => b.classList.remove("selected"));
-          btn.classList.add("selected");
-        });
-        scale.appendChild(btn);
-      }
-    });
-  }
-  
-  buildScales();
-  closeSurvey();
-
-  
- 
-  document.getElementById("surveyForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const status = document.getElementById("surveyStatus");
-    status.textContent = "";
-  
-    // validate all answered
-    const missing = Object.entries(surveyRatings).filter(([k,v]) => v === null).map(([k]) => k);
-    if (missing.length) {
-      status.textContent = "Please answer all 5 questions (1–5).";
-      return;
-    }
-  
-    try {
-      status.textContent = "Submitting...";
-      const resp = await fetch("/survey", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({
-          session_id: clientSessionId,
-          ratings: surveyRatings
-        })
-      });
-  
-      const data = await resp.json();
-      if (!resp.ok) {
-        status.textContent = data.error || "Survey submission failed.";
+    document.getElementById("feedback-submit").addEventListener("click", async function() {
+      if (!termsAccepted) {
+        alert("Please accept the Terms & Conditions to use the chatbot.");
         return;
       }
-  
-      status.textContent = "Thank you—survey submitted.";
 
-      // Mark survey as completed for this session
-      surveyCompleted = true;
-      sessionStorage.setItem(`survey_done_${clientSessionId}`, "1");
-      
-      setTimeout(() => {
-        closeSurvey();
-      }, 800);
+      if (!surveyCompleted && questionCount >= MAX_FREE_QUESTIONS) {
+        openSurvey();
+        return;
+      }
 
-  
-    } catch (err) {
-      status.textContent = "Network error submitting survey.";
+      let feedbackInput = document.getElementById("feedback-input");
+      let feedbackText = feedbackInput.value.trim();
+      let feedbackStatus = document.getElementById("feedback-status");
+
+      if (!feedbackText) {
+        feedbackStatus.innerHTML = "<p style='color: red;'>Please enter feedback.</p>";
+        return;
+      }
+
+      if (!currentLogId) {
+        feedbackStatus.innerHTML =
+          "<p style='color: red;'>No response ID found yet. Ask a question first, then submit feedback.</p>";
+        return;
+      }
+
+      console.log("Submitting feedback payload:", {
+        feedback: feedbackText,
+        log_id: currentLogId,
+        session_id: clientSessionId
+      });
+
+      try {
+        let response = await fetch("/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            feedback: feedbackText,
+            log_id: currentLogId,
+            session_id: clientSessionId
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status} ${response.statusText}`);
+        }
+
+        let result = await response.json();
+        feedbackStatus.innerHTML =
+          `<p style='color: green;'>${escapeHtml(result.message || "Feedback submitted successfully.")}</p>`;
+        feedbackInput.value = "";
+      } catch (error) {
+        feedbackStatus.innerHTML = `<p style='color: red;'>${escapeHtml(error.message)}</p>`;
+      }
+    });
+
+    /* Terms & Conditions modal wiring */
+    const termsModal = document.getElementById("terms-modal");
+    const acceptCheckbox = document.getElementById("accept-checkbox");
+    const acceptButton = document.getElementById("accept-button");
+
+    acceptCheckbox.addEventListener("change", () => {
+      acceptButton.disabled = !acceptCheckbox.checked;
+    });
+
+    acceptButton.addEventListener("click", () => {
+      termsAccepted = true;
+      termsModal.style.display = "none";
+      unlockBodyScrollIfSafe();
+    });
+
+    /* Survey */
+    let surveyRatings = { q1: null, q2: null, q3: null, q4: null, q5: null };
+
+    function openSurvey() {
+      closeAllSidebars();
+      const el = document.getElementById("surveyOverlay");
+      el.classList.remove("is-hidden");
+      lockBodyScroll();
+
+      const surveyModal = el.querySelector(".survey-modal");
+      if (surveyModal) {
+        setTimeout(() => surveyModal.focus(), 0);
+      }
     }
-  });
 
-  // ==========================
-  // Warn user before closing tab
-  // ==========================
-  window.addEventListener("beforeunload", (e) => {
-    // Only warn if they interacted; browsers won't show custom survey UI here
-    const usedChat = Boolean(currentQuestion || currentAnswer);
-    if (usedChat) {
+    function closeSurvey() {
+      const el = document.getElementById("surveyOverlay");
+      el.classList.add("is-hidden");
+      unlockBodyScrollIfSafe();
+    }
+
+    function buildScales() {
+      document.querySelectorAll(".scale").forEach(scale => {
+        const qKey = scale.getAttribute("data-q");
+        scale.innerHTML = "";
+        for (let i = 1; i <= 5; i++) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = i;
+          btn.addEventListener("click", () => {
+            surveyRatings[qKey] = i;
+            [...scale.querySelectorAll("button")].forEach(b => b.classList.remove("selected"));
+            btn.classList.add("selected");
+          });
+          scale.appendChild(btn);
+        }
+      });
+    }
+
+    buildScales();
+    closeSurvey();
+
+    document.getElementById("surveyForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      e.returnValue = "";
-    }
-  });
+      const status = document.getElementById("surveyStatus");
+      status.textContent = "";
 
-    
+      const missing = Object.entries(surveyRatings).filter(([k, v]) => v === null).map(([k]) => k);
+      if (missing.length) {
+        status.textContent = "Please answer all 5 questions (1–5).";
+        return;
+      }
+
+      try {
+        status.textContent = "Submitting...";
+        const resp = await fetch("/survey", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({
+            session_id: clientSessionId,
+            ratings: surveyRatings
+          })
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) {
+          status.textContent = data.error || "Survey submission failed.";
+          return;
+        }
+
+        status.textContent = "Thank you—survey submitted.";
+
+        surveyCompleted = true;
+        sessionStorage.setItem(`survey_done_${clientSessionId}`, "1");
+
+        setTimeout(() => {
+          closeSurvey();
+        }, 800);
+
+      } catch (err) {
+        status.textContent = "Network error submitting survey.";
+      }
+    });
+
+    // Warn user before closing tab
+    window.addEventListener("beforeunload", (e) => {
+      const usedChat = Boolean(currentQuestion || currentAnswer);
+      if (usedChat) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    });
+
+    // Close sidebars with Escape
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeAllSidebars();
+      }
+    });
   </script>
 </body>
 </html>
-
-
