@@ -41,18 +41,59 @@
       z-index: 1;
     }
 
-    .topbar {
+    .topbar-shell {
       width: min(1100px, 96%);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      align-self: center;
+    }
+
+    .topbar-collapse-row {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .topbar-collapse-btn {
+      width: 42px;
+      height: 42px;
+      min-height: 42px;
+      min-width: 42px;
+      border-radius: 999px;
+      background: #002E6D;
+      color: #fff;
+      border: none;
+      font-size: 22px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .topbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 12px;
       padding: 8px 0 14px;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
       background: rgba(18,18,18,0.92);
       backdrop-filter: blur(8px);
+      max-height: 120px;
+      overflow: hidden;
+      transition: max-height 0.28s ease, opacity 0.28s ease, margin 0.28s ease, padding 0.28s ease;
+      opacity: 1;
+    }
+
+    .topbar.collapsed {
+      max-height: 0;
+      opacity: 0;
+      margin: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      pointer-events: none;
     }
 
     .topbar-left,
@@ -67,18 +108,25 @@
     button {
       padding: 10px 14px;
       border: none;
-      background-color: transparent;
-      color: inherit;
+      background-color: #002E6D;
+      color: #fff;
       cursor: pointer;
       border-radius: 8px;
-      border: 1px solid currentColor;
       font-size: 16px;
       min-height: 44px;
     }
 
     .theme-toggle {
       position: static;
-      background-color: transparent;
+    }
+
+    button:hover,
+    .topbar-btn:hover,
+    .topbar-collapse-btn:hover,
+    #feedback-submit:hover,
+    #accept-button:hover,
+    #surveyOverlay .actions button:hover {
+      filter: brightness(1.08);
     }
 
     .logo-wrapper {
@@ -109,21 +157,29 @@
     }
 
     .question-buttons button {
-      text-align: left;
+      text-align: center;
       white-space: normal;
       word-break: break-word;
       line-height: 1.35;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .collapsible {
-      background-color: transparent;
-      color: inherit;
+      color: #fff;
       cursor: pointer;
       padding: 12px;
-      border: 1px solid currentColor;
-      text-align: left;
+      border: none;
+      text-align: center;
       width: 100%;
       margin-top: 10px;
+      background-color: #002E6D;
+    }
+
+    .light-mode .collapsible {
+      background-color: #00ADBB;
+      color: #fff;
     }
 
     .collapsible-content {
@@ -156,7 +212,7 @@
     }
 
     .mic-button {
-      background: none;
+      background: #002E6D;
       cursor: pointer;
       color: white;
       font-size: 24px;
@@ -180,7 +236,7 @@
 
     #response-container,
     #followup-container {
-      text-align: left;
+      text-align: center;
       word-wrap: break-word;
       overflow-wrap: anywhere;
     }
@@ -191,9 +247,12 @@
 
     .followup-btn {
       width: 100%;
-      text-align: left;
+      text-align: center;
       white-space: normal;
       line-height: 1.4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     #audio-player {
@@ -210,6 +269,20 @@
       background: rgba(249,249,249,0.92);
     }
 
+    .light-mode .topbar-btn,
+    .light-mode button,
+    .light-mode .topbar-collapse-btn {
+      background-color: #00ADBB;
+      color: #fff;
+    }
+
+    .light-mode #feedback-submit,
+    .light-mode #accept-button,
+    .light-mode #surveyOverlay .actions button {
+      background-color: #00ADBB;
+      color: #fff;
+    }
+
     .light-mode .collapsible-content {
       background-color: #fff;
       color: black;
@@ -219,7 +292,7 @@
       font-size: 12px;
       color: #bdbdbd;
       margin: 4px 0 12px;
-      text-align: left;
+      text-align: center;
     }
 
     .light-mode .tiny-disclaimer {
@@ -250,11 +323,16 @@
       background-color: #1e1e1e;
       color: white;
       overflow-y: auto;
-      transition: transform 0.3s ease;
+      transition: transform 0.3s ease, background-color 0.25s ease, color 0.25s ease;
       padding: 20px 18px 24px;
       z-index: 1200;
       text-align: left;
       box-shadow: 0 0 24px rgba(0,0,0,0.35);
+    }
+
+    .light-mode .sidebar {
+      background-color: #ffffff;
+      color: #111;
     }
 
     .sidebar.left {
@@ -287,9 +365,23 @@
       justify-content: center;
     }
 
+    .light-mode .close-btn {
+      color: #111;
+      background: transparent;
+    }
+
     #feedback-sidebar .close-btn {
       left: 10px;
       right: auto;
+    }
+
+    #feedback-sidebar h3 {
+      text-align: right;
+      margin-right: 46px;
+    }
+
+    .light-mode #feedback-sidebar h3 {
+      color: #111;
     }
 
     #feedback-input {
@@ -306,12 +398,16 @@
     #feedback-submit {
       margin-top: 10px;
       padding: 10px 14px;
-      background-color: #333;
+      background-color: #002E6D;
       border: none;
       color: white;
       cursor: pointer;
       border-radius: 8px;
       width: 100%;
+    }
+
+    .light-mode #feedback-submit {
+      color: #fff;
     }
 
     /* Terms modal */
@@ -378,7 +474,7 @@
 
     #accept-button {
       padding: 12px 16px;
-      background: #333;
+      background: #002E6D;
       color: #fff;
       border-radius: 8px;
       border: none;
@@ -482,6 +578,8 @@
 
     #surveyOverlay .actions button {
       width: 100%;
+      background-color: #002E6D;
+      color: #fff;
     }
 
     #surveyOverlay .status {
@@ -499,16 +597,34 @@
       word-break: break-word;
     }
 
+    #response-container p,
+    #response-container li,
+    #response-container div {
+      text-align: center;
+    }
+
+    #response-container ul,
+    #response-container ol {
+      list-style-position: inside;
+      padding-left: 0;
+      text-align: center;
+    }
+
     #response-container pre,
     #response-container code {
       white-space: pre-wrap;
       word-break: break-word;
+      text-align: left;
     }
 
     .history-entry {
       border-bottom: 1px solid #444;
       margin-bottom: 12px;
       padding-bottom: 12px;
+    }
+
+    .light-mode .history-entry {
+      border-bottom: 1px solid #ddd;
     }
 
     .history-entry .history-q,
@@ -540,8 +656,11 @@
         grid-template-columns: 1fr;
       }
 
-      .topbar {
+      .topbar-shell {
         width: 94%;
+      }
+
+      .topbar {
         gap: 8px;
         align-items: flex-start;
       }
@@ -564,6 +683,10 @@
 
     /* Small phones */
     @media (max-width: 480px) {
+      .topbar-collapse-row {
+        margin-bottom: 4px;
+      }
+
       .topbar {
         flex-direction: column;
         align-items: stretch;
@@ -618,24 +741,31 @@
   </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-left">
-      <button class="topbar-btn" onclick="toggleSidebar('chat-history-sidebar')" aria-label="Open chat history">
-        Chat History
+  <div class="topbar-shell">
+    <div class="topbar-collapse-row">
+      <button id="topbar-collapse-btn" class="topbar-collapse-btn" aria-label="Collapse top menu" title="Collapse top menu">
+        −
       </button>
     </div>
 
-    <div class="topbar-right">
-      <button class="topbar-btn" onclick="toggleSidebar('feedback-sidebar')" aria-label="Open feedback panel">
-        Feedback
-      </button>
-      <button class="topbar-btn theme-toggle" aria-label="Toggle theme">
-        Theme
-      </button>
-    </div>
-  </header>
+    <header id="topbar" class="topbar">
+      <div class="topbar-left">
+        <button class="topbar-btn" onclick="toggleSidebar('chat-history-sidebar')" aria-label="Open chat history">
+          Chat History
+        </button>
+      </div>
 
-  <!-- Logo in rounded white container -->
+      <div class="topbar-right">
+        <button class="topbar-btn theme-toggle" aria-label="Toggle theme">
+          Theme
+        </button>
+        <button class="topbar-btn" onclick="toggleSidebar('feedback-sidebar')" aria-label="Open feedback panel">
+          Feedback
+        </button>
+      </div>
+    </header>
+  </div>
+
   <div class="logo-wrapper">
     <img src="/logo" alt="Company Logo" class="logo">
   </div>
@@ -715,7 +845,6 @@
 
   <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="closeAllSidebars()"></div>
 
-  <!-- Chat History Sidebar -->
   <div id="chat-history-sidebar" class="sidebar left" aria-label="Chat history panel">
     <button class="close-btn" onclick="toggleSidebar('chat-history-sidebar')" aria-label="Close chat history">×</button>
     <h3>Chat History</h3>
@@ -724,7 +853,6 @@
     </div>
   </div>
 
-  <!-- Feedback Sidebar -->
   <div id="feedback-sidebar" class="sidebar right" aria-label="Feedback panel">
     <button class="close-btn" onclick="toggleSidebar('feedback-sidebar')" aria-label="Close feedback">×</button>
     <h3>Feedback</h3>
@@ -736,7 +864,6 @@
     </div>
   </div>
 
-  <!-- Terms & Conditions Modal -->
   <div id="terms-modal" class="modal-overlay" aria-modal="true" role="dialog" aria-labelledby="termsTitle">
     <div class="modal" tabindex="-1">
       <div class="modal-header">
@@ -783,7 +910,6 @@
   </div>
 
   <script>
-    // Global variables to store current question and answer for feedback
     let currentQuestion = "";
     let currentAnswer = "";
     let currentLogId = "";
@@ -795,10 +921,8 @@
       localStorage.setItem("client_session_id", clientSessionId);
     }
 
-    // Terms flag
     let termsAccepted = false;
 
-    // Survey gating settings
     const MAX_FREE_QUESTIONS = 2;
 
     let questionCount = parseInt(
@@ -847,21 +971,35 @@
         .replaceAll("'", "&#39;");
     }
 
-    // Prevent body scroll while initial terms modal is open
     lockBodyScroll();
 
-    // Theme Toggle Functionality
     document.querySelector(".theme-toggle").addEventListener("click", function() {
       document.body.classList.toggle("light-mode");
     });
 
-    // Collapsible Section Functionality for Document Sources
+    const topbar = document.getElementById("topbar");
+    const topbarCollapseBtn = document.getElementById("topbar-collapse-btn");
+    let topbarCollapsed = false;
+
+    topbarCollapseBtn.addEventListener("click", function () {
+      topbarCollapsed = !topbarCollapsed;
+      topbar.classList.toggle("collapsed", topbarCollapsed);
+      topbarCollapseBtn.textContent = topbarCollapsed ? "+" : "−";
+      topbarCollapseBtn.setAttribute(
+        "aria-label",
+        topbarCollapsed ? "Expand top menu" : "Collapse top menu"
+      );
+      topbarCollapseBtn.setAttribute(
+        "title",
+        topbarCollapsed ? "Expand top menu" : "Collapse top menu"
+      );
+    });
+
     document.querySelector(".collapsible").addEventListener("click", function() {
       let content = document.getElementById("document-sources");
       content.style.display = (content.style.display === "block") ? "none" : "block";
     });
 
-    // Sidebar toggle function
     function toggleSidebar(id) {
       if (!termsAccepted) {
         alert("Please accept the Terms & Conditions to use the chatbot.");
@@ -888,7 +1026,6 @@
       }
     }
 
-    // Voice Recognition Functionality
     document.getElementById("mic-button").addEventListener("click", function() {
       if (!termsAccepted) {
         alert("Please accept the Terms & Conditions to use the chatbot.");
@@ -911,7 +1048,6 @@
       };
     });
 
-    // Chatbot Form Handling
     document.getElementById("chat-form").addEventListener("submit", async function(event) {
       event.preventDefault();
       if (!termsAccepted) {
@@ -1006,7 +1142,6 @@
       }
     });
 
-    // Function to update chat history sidebar
     function updateChatHistory(question, answer) {
       const historyContainer = document.getElementById("chat-history-content");
 
@@ -1027,7 +1162,6 @@
       historyContainer.prepend(entry);
     }
 
-    // Feedback submission handling
     document.getElementById("feedback-submit").addEventListener("click", async function() {
       if (!termsAccepted) {
         alert("Please accept the Terms & Conditions to use the chatbot.");
@@ -1084,7 +1218,6 @@
       }
     });
 
-    /* Terms & Conditions modal wiring */
     const termsModal = document.getElementById("terms-modal");
     const acceptCheckbox = document.getElementById("accept-checkbox");
     const acceptButton = document.getElementById("accept-button");
@@ -1099,7 +1232,6 @@
       unlockBodyScrollIfSafe();
     });
 
-    /* Survey */
     let surveyRatings = { q1: null, q2: null, q3: null, q4: null, q5: null };
 
     function openSurvey() {
@@ -1183,7 +1315,6 @@
       }
     });
 
-    // Warn user before closing tab
     window.addEventListener("beforeunload", (e) => {
       const usedChat = Boolean(currentQuestion || currentAnswer);
       if (usedChat) {
@@ -1192,7 +1323,6 @@
       }
     });
 
-    // Close sidebars with Escape
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         closeAllSidebars();
