@@ -207,12 +207,14 @@
       color: #111;
       width: 90%;
       max-width: 960px;
-      max-height: 88vh;
+      max-height: min(92dvh, 92vh);
       border-radius: 14px;
       padding: 24px 26px;
       box-shadow: 0 24px 64px rgba(0,0,0,0.5);
       overflow: hidden;
       text-align: left;
+      display: flex;
+      flex-direction: column;
     }
     .modal h2 { margin: 0 0 10px; }
     .terms-text {
@@ -222,14 +224,24 @@
       padding: 12px;
       max-height: 60vh;
       overflow-y: auto;
+      flex: 1 1 auto;
+      min-height: 0;
       line-height: 1.45;
       font-size: 15px;
+    }
+    .modal-footer {
+      position: sticky;
+      bottom: 0;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #ddd;
+      background: #fff;
     }
     .accept-row {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-top: 12px;
+      margin-top: 0;
     }
     #accept-button {
       margin-top: 10px;
@@ -250,6 +262,13 @@
       margin:4px 0 12px;
     }
     .light-mode .tiny-disclaimer{ color:#555; }
+
+    @media (max-width: 768px) {
+      .modal {
+        padding: 16px;
+        border-radius: 10px;
+      }
+    }
 
     /* ===========================
        SURVEY: bulletproof show/hide
@@ -435,10 +454,12 @@
         </ul>
 
       </div>
-      <label class="accept-row">
-        <input type="checkbox" id="accept-checkbox"> I have read and accept the Terms &amp; Conditions
-      </label>
-      <button id="accept-button" disabled>Accept &amp; Continue</button>
+      <div class="modal-footer">
+        <label class="accept-row">
+          <input type="checkbox" id="accept-checkbox"> I have read and accept the Terms &amp; Conditions
+        </label>
+        <button id="accept-button" disabled>Accept &amp; Continue</button>
+      </div>
     </div>
   </div>
   
