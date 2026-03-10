@@ -8,6 +8,13 @@
   <title>OTSL HR Chatbot</title>
   <link rel="stylesheet" href="/static/style.css">
   <style>
+    :root {
+      --btn-dark: #1E4F8A;
+      --btn-light: #36BDC7;
+      --btn-light-text: #111111;
+      --btn-dark-text: #ffffff;
+    }
+
     * {
       box-sizing: border-box;
     }
@@ -43,8 +50,7 @@
 
     .topbar-shell {
       width: min(1100px, 96%);
-      position: sticky;
-      top: 0;
+      position: relative;
       z-index: 1000;
       align-self: center;
     }
@@ -62,8 +68,8 @@
       min-height: 42px;
       min-width: 42px;
       border-radius: 999px;
-      background: #002E6D;
-      color: #fff;
+      background: var(--btn-dark);
+      color: var(--btn-dark-text);
       border: none;
       font-size: 22px;
       line-height: 1;
@@ -108,8 +114,8 @@
     button {
       padding: 10px 14px;
       border: none;
-      background-color: #002E6D;
-      color: #fff;
+      background-color: var(--btn-dark);
+      color: var(--btn-dark-text);
       cursor: pointer;
       border-radius: 8px;
       font-size: 16px;
@@ -126,7 +132,7 @@
     #feedback-submit:hover,
     #accept-button:hover,
     #surveyOverlay .actions button:hover {
-      filter: brightness(1.08);
+      filter: brightness(1.06);
     }
 
     .logo-wrapper {
@@ -174,12 +180,12 @@
       text-align: center;
       width: 100%;
       margin-top: 10px;
-      background-color: #002E6D;
+      background-color: var(--btn-dark);
     }
 
     .light-mode .collapsible {
-      background-color: #00ADBB;
-      color: #fff;
+      background-color: var(--btn-light);
+      color: var(--btn-light-text);
     }
 
     .collapsible-content {
@@ -212,7 +218,7 @@
     }
 
     .mic-button {
-      background: #002E6D;
+      background: var(--btn-dark);
       cursor: pointer;
       color: white;
       font-size: 24px;
@@ -272,15 +278,20 @@
     .light-mode .topbar-btn,
     .light-mode button,
     .light-mode .topbar-collapse-btn {
-      background-color: #00ADBB;
-      color: #fff;
+      background-color: var(--btn-light);
+      color: var(--btn-light-text);
     }
 
     .light-mode #feedback-submit,
     .light-mode #accept-button,
     .light-mode #surveyOverlay .actions button {
-      background-color: #00ADBB;
-      color: #fff;
+      background-color: var(--btn-light);
+      color: var(--btn-light-text);
+    }
+
+    .light-mode .mic-button {
+      background-color: var(--btn-light);
+      color: var(--btn-light-text);
     }
 
     .light-mode .collapsible-content {
@@ -299,7 +310,6 @@
       color: #555;
     }
 
-    /* Sidebar */
     .sidebar-backdrop {
       position: fixed;
       inset: 0;
@@ -398,7 +408,7 @@
     #feedback-submit {
       margin-top: 10px;
       padding: 10px 14px;
-      background-color: #002E6D;
+      background-color: var(--btn-dark);
       border: none;
       color: white;
       cursor: pointer;
@@ -406,11 +416,6 @@
       width: 100%;
     }
 
-    .light-mode #feedback-submit {
-      color: #fff;
-    }
-
-    /* Terms modal */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -474,7 +479,7 @@
 
     #accept-button {
       padding: 12px 16px;
-      background: #002E6D;
+      background: var(--btn-dark);
       color: #fff;
       border-radius: 8px;
       border: none;
@@ -493,7 +498,6 @@
       z-index: 2;
     }
 
-    /* Survey modal */
     #surveyOverlay.survey-overlay {
       position: fixed;
       inset: 0;
@@ -578,7 +582,7 @@
 
     #surveyOverlay .actions button {
       width: 100%;
-      background-color: #002E6D;
+      background-color: var(--btn-dark);
       color: #fff;
     }
 
@@ -587,7 +591,6 @@
       min-height: 24px;
     }
 
-    /* Response / markdown safety */
     #response-container p,
     #response-container li,
     #response-container div,
@@ -637,7 +640,6 @@
       opacity: 0.92;
     }
 
-    /* Tablet */
     @media (max-width: 768px) {
       body {
         font-size: 16px;
@@ -681,7 +683,6 @@
       }
     }
 
-    /* Small phones */
     @media (max-width: 480px) {
       .topbar-collapse-row {
         margin-bottom: 4px;
@@ -743,12 +744,12 @@
 <body>
   <div class="topbar-shell">
     <div class="topbar-collapse-row">
-      <button id="topbar-collapse-btn" class="topbar-collapse-btn" aria-label="Collapse top menu" title="Collapse top menu">
-        −
+      <button id="topbar-collapse-btn" class="topbar-collapse-btn" aria-label="Expand top menu" title="Expand top menu">
+        +
       </button>
     </div>
 
-    <header id="topbar" class="topbar">
+    <header id="topbar" class="topbar collapsed">
       <div class="topbar-left">
         <button class="topbar-btn" onclick="toggleSidebar('chat-history-sidebar')" aria-label="Open chat history">
           Chat History
@@ -922,7 +923,6 @@
     }
 
     let termsAccepted = false;
-
     const MAX_FREE_QUESTIONS = 2;
 
     let questionCount = parseInt(
@@ -979,7 +979,7 @@
 
     const topbar = document.getElementById("topbar");
     const topbarCollapseBtn = document.getElementById("topbar-collapse-btn");
-    let topbarCollapsed = false;
+    let topbarCollapsed = true;
 
     topbarCollapseBtn.addEventListener("click", function () {
       topbarCollapsed = !topbarCollapsed;
@@ -1187,12 +1187,6 @@
           "<p style='color: red;'>No response ID found yet. Ask a question first, then submit feedback.</p>";
         return;
       }
-
-      console.log("Submitting feedback payload:", {
-        feedback: feedbackText,
-        log_id: currentLogId,
-        session_id: clientSessionId
-      });
 
       try {
         let response = await fetch("/feedback", {
