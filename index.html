@@ -290,6 +290,32 @@
     border-radius: 12px;
     color: #111;
     text-align: left;
+    display: flex;
+    flex-direction: column;
+    max-height: min(90dvh, 90vh);
+    overflow: hidden;
+  }
+
+  #surveyOverlay #surveyForm{
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  #surveyOverlay .survey-body{
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-right: 2px;
+  }
+
+  #surveyOverlay .survey-footer{
+    flex: 0 0 auto;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #ddd;
+    background: #fff;
   }
   
   #surveyOverlay .q{ margin: 14px 0; }
@@ -297,6 +323,49 @@
   #surveyOverlay .scale button.selected{ outline: 2px solid #000; }
   #surveyOverlay .actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
   #surveyOverlay .status{ margin-top:10px; }
+
+  @media (max-width: 600px) {
+    #surveyOverlay .survey-modal{
+      width: calc(100% - 12px);
+      padding: 12px;
+      border-radius: 10px;
+      max-height: min(94dvh, 94vh);
+    }
+
+    #surveyOverlay h2{
+      font-size: 1.05rem;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    #surveyOverlay p{
+      margin: 6px 0;
+      font-size: 0.92rem;
+      line-height: 1.35;
+    }
+
+    #surveyOverlay .q{
+      margin: 10px 0;
+    }
+
+    #surveyOverlay .q label{
+      font-size: 0.92rem;
+      line-height: 1.35;
+    }
+
+    #surveyOverlay .scale button{
+      margin-right: 4px;
+      margin-top: 6px;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      font-size: 0.9rem;
+    }
+
+    #surveyOverlay .actions{
+      margin-top: 10px;
+    }
+  }
 
   
   
@@ -321,37 +390,40 @@
 
     <div id="surveyOverlay" class="survey-overlay is-hidden">
       <div class="survey-modal">
-        <h2>HR Chatbot Employee Experience Survey</h2>
-        <p>Use the scale below to rate your experience</p>
-        <p><b>1</b>=Strongly Disagree · <b>2</b>=Disagree · <b>3</b>=Neutral · <b>4</b>=Agree · <b>5</b>=Strongly Agree</p>
-    
         <form id="surveyForm">
-          <div class="q">
-            <label>I feel more empowered to access HR information independently because of the chatbot</label>
-            <div class="scale" data-q="q1"></div>
-          </div>
-          <div class="q">
-            <label>My question was resolved by the chatbot without HR or Management involvement</label>
-            <div class="scale" data-q="q2"></div>
-          </div>
-          <div class="q">
-            <label>Using the chatbot saved me time compared to contacting HR directly</label>
-            <div class="scale" data-q="q3"></div>
-          </div>
-          <div class="q">
-            <label>The chatbot covered the HR topics I needed (leave, payroll, policies, benefits)</label>
-            <div class="scale" data-q="q4"></div>
-          </div>
-          <div class="q">
-            <label>The chatbot provided accurate information</label>
-            <div class="scale" data-q="q5"></div>
-          </div>
-    
-          <div class="actions">
-            <button id="surveySubmitBtn">Submit</button>
-          </div>
+          <div class="survey-body">
+            <h2>HR Chatbot Employee Experience Survey</h2>
+            <p>Use the scale below to rate your experience</p>
+            <p><b>1</b>=Strongly Disagree · <b>2</b>=Disagree · <b>3</b>=Neutral · <b>4</b>=Agree · <b>5</b>=Strongly Agree</p>
 
-          <div id="surveyStatus" class="status"></div>
+            <div class="q">
+              <label>I feel more empowered to access HR information independently because of the chatbot</label>
+              <div class="scale" data-q="q1"></div>
+            </div>
+            <div class="q">
+              <label>My question was resolved by the chatbot without HR or Management involvement</label>
+              <div class="scale" data-q="q2"></div>
+            </div>
+            <div class="q">
+              <label>Using the chatbot saved me time compared to contacting HR directly</label>
+              <div class="scale" data-q="q3"></div>
+            </div>
+            <div class="q">
+              <label>The chatbot covered the HR topics I needed (leave, payroll, policies, benefits)</label>
+              <div class="scale" data-q="q4"></div>
+            </div>
+            <div class="q">
+              <label>The chatbot provided accurate information</label>
+              <div class="scale" data-q="q5"></div>
+            </div>
+          </div>
+          <div class="survey-footer">
+            <div class="actions">
+              <button id="surveySubmitBtn">Submit</button>
+            </div>
+
+            <div id="surveyStatus" class="status"></div>
+          </div>
         </form>
       </div>
     </div>
