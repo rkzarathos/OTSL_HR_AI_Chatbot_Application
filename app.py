@@ -405,7 +405,7 @@ You MUST return ONLY a single valid JSON object (no markdown, no backticks, no c
 Allowed Main Topic Codes (choose exactly ONE):
 {topic_catalog}
 
-Today's date (America/Chicago): {{today}}
+Today's date (America/Chicago): {today}
 
 Context:
 ---------------------
