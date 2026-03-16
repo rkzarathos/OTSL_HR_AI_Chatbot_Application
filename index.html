@@ -561,8 +561,8 @@
     }
 
     #surveyOverlay .survey-modal {
-      background: #fff;
-      color: #111;
+      background: #1b1b1b;
+      color: #ffffff;
       width: min(720px, 100%);
       max-height: calc(100dvh - 24px);
       border-radius: 12px;
@@ -576,12 +576,25 @@
     #surveyOverlay .survey-header {
       padding: 18px 18px 10px;
       flex: 0 0 auto;
+      background: #1b1b1b;
+      color: #ffffff;
     }
 
     #surveyOverlay .survey-body {
       padding: 0 18px 8px;
       overflow-y: auto;
       flex: 1 1 auto;
+      background: #1b1b1b;
+      color: #ffffff;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #surveyOverlay .survey-scale-legend,
+    #surveyOverlay .q label,
+    #surveyOverlay .status,
+    #surveyOverlay h2,
+    #surveyOverlay p {
+      color: inherit;
     }
 
     #surveyOverlay .survey-scale-legend {
@@ -613,7 +626,8 @@
     }
 
     #surveyOverlay .scale button.selected {
-      outline: 2px solid #000;
+      outline: 2px solid currentColor;
+      outline-offset: 1px;
     }
 
     #surveyOverlay .actions {
@@ -621,8 +635,9 @@
       gap: 10px;
       justify-content: stretch;
       margin-top: 0;
-      background: #fff;
-      border-top: 1px solid #ddd;
+      background: #1b1b1b;
+      color: #ffffff;
+      border-top: 1px solid rgba(255,255,255,0.18);
       padding: 12px 18px 18px;
     }
 
@@ -630,6 +645,30 @@
       width: 100%;
       background-color: var(--btn-dark);
       color: #fff;
+    }
+
+    .light-mode #surveyOverlay .survey-modal {
+      background: #ffffff;
+      color: #111111;
+    }
+
+    .light-mode #surveyOverlay .survey-header,
+    .light-mode #surveyOverlay .survey-body,
+    .light-mode #surveyOverlay .actions {
+      background: #ffffff;
+      color: #111111;
+    }
+
+    .light-mode #surveyOverlay .q label,
+    .light-mode #surveyOverlay .survey-scale-legend,
+    .light-mode #surveyOverlay .status,
+    .light-mode #surveyOverlay h2,
+    .light-mode #surveyOverlay p {
+      color: #111111;
+    }
+
+    .light-mode #surveyOverlay .actions {
+      border-top: 1px solid #ddd;
     }
 
     #response-container p,
@@ -860,7 +899,7 @@
     <h1>OTSL.ai: Ask me Anything...</h1>
 
     <div class="question-buttons">
-      <button onclick="document.getElementById('user-input').value='What\\'s the company\\'s travel policy?'">What's the company's travel policy?</button>
+      <button onclick="document.getElementById('user-input').value='What\'s the company\'s travel policy?'">What's the company's travel policy?</button>
       <button onclick="document.getElementById('user-input').value='What is the performance management process?'">What is the performance management process?</button>
       <button onclick="document.getElementById('user-input').value='How do I request for PTO?'">How do I request for PTO?</button>
       <button onclick="document.getElementById('user-input').value='Which company do we use for our medical insurance?'">Which company do we use for our medical insurance?</button>
@@ -1026,7 +1065,7 @@
     const topbarOverlayBackdrop = document.getElementById("topbar-overlay-backdrop");
 
     let topbarCollapsed = true;
-    let topbarPinned = false; // desktop and mobile default
+    let topbarPinned = false;
 
     function syncTopbarState() {
       topbarShell.classList.toggle("pinned", topbarPinned);
