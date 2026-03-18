@@ -542,13 +542,21 @@ retriever = vectorstore.as_retriever(
 # Session-based storage
 session_data = {}
 
-@app.get("/dash")
+@app.get("/dash-dark")
 async def get_dash():
     # Adjust the file name as needed.
-    dash_path = os.path.join(DOCUMENTS_DIR, "dash image.png")
-    if not os.path.exists(dash_path):
+    dash_dark_path = os.path.join(DOCUMENTS_DIR, "dash image dark mode.png")
+    if not os.path.exists(dash_dark_path):
         raise HTTPException(status_code=404, detail="Dash not found")
-    return FileResponse(dash_path, media_type="image/png")
+    return FileResponse(dash_dark_path, media_type="image/png")
+
+@app.get("/dash-light")
+async def get_dash():
+    # Adjust the file name as needed.
+    dash_light_path = os.path.join(DOCUMENTS_DIR, "dash image light mode.png")
+    if not os.path.exists(dash_light_path):
+        raise HTTPException(status_code=404, detail="Dash not found")
+    return FileResponse(dash_light_path, media_type="image/png")
 
 @app.get("/thinking-gif")
 async def get_thinking_gif():
