@@ -180,17 +180,38 @@
       display: block;
     }
 
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .logo-wrapper,
+    .dash-image-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .logo-wrapper {
-      display: inline-block;
       background: #ffffff;
       border-radius: 16px;
       padding: 10px 14px;
       box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-      margin-bottom: 16px;
     }
 
     .logo {
       width: 150px;
+      height: auto;
+      display: block;
+    }
+
+    .dash-image {
+      width: 120px;
       height: auto;
       display: block;
     }
@@ -304,6 +325,34 @@
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+
+    .thinking-indicator {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 10px 0 14px;
+      text-align: center;
+    }
+
+    .thinking-indicator.show {
+      display: flex;
+    }
+
+    .thinking-video {
+      width: 84px;
+      height: auto;
+      border-radius: 10px;
+      object-fit: cover;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+      background: transparent;
+    }
+
+    .thinking-text {
+      font-size: 13px;
+      opacity: 0.85;
     }
 
     #audio-player {
@@ -734,6 +783,10 @@
         width: 124px;
       }
 
+      .dash-image {
+        width: 100px;
+      }
+
       .question-buttons {
         grid-template-columns: 1fr;
       }
@@ -779,6 +832,18 @@
         width: 100%;
       }
 
+      .brand-row {
+        gap: 12px;
+      }
+
+      .logo {
+        width: 124px;
+      }
+
+      .dash-image {
+        width: 90px;
+      }
+
       .input-container {
         flex-direction: row;
         align-items: stretch;
@@ -790,6 +855,14 @@
 
       .mic-button {
         min-width: 50px;
+      }
+
+      .thinking-video {
+        width: 64px;
+      }
+
+      .thinking-text {
+        font-size: 12px;
       }
 
       .sidebar {
@@ -848,8 +921,14 @@
     </header>
   </div>
 
-  <div class="logo-wrapper">
-    <img src="/logo" alt="Company Logo" class="logo">
+  <div class="brand-row">
+    <div class="logo-wrapper">
+      <img src="/logo" alt="Company Logo" class="logo">
+    </div>
+
+    <div class="dash-image-wrapper">
+      <img src="/dash-image.png" alt="DASH robot" class="dash-image">
+    </div>
   </div>
 
   <div class="container">
@@ -916,6 +995,22 @@
       </div>
       <button type="submit" class="submit-btn">Submit</button>
     </form>
+
+    <div id="thinking-indicator" class="thinking-indicator" aria-live="polite" aria-hidden="true">
+      <div class="thinking-text">DASH is thinking...</div>
+      <video
+        id="thinking-video"
+        class="thinking-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+      >
+        <source src="/thinking-ai.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
 
     <div id="response-container"></div>
     <div id="followup-container" class="followup-container"></div>
@@ -1050,6 +1145,35 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#39;");
+    }
+
+    function showThinkingIndicator() {
+      const wrapper = document.getElementById("thinking-indicator");
+      const video = document.getElementById("thinking-video");
+
+      wrapper.classList.add("show");
+      wrapper.setAttribute("aria-hidden", "false");
+
+      if (video) {
+        video.currentTime = 0;
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch(() => {});
+        }
+      }
+    }
+
+    function hideThinkingIndicator() {
+      const wrapper = document.getElementById("thinking-indicator");
+      const video = document.getElementById("thinking-video");
+
+      wrapper.classList.remove("show");
+      wrapper.setAttribute("aria-hidden", "true");
+
+      if (video) {
+        video.pause();
+        video.currentTime = 0;
+      }
     }
 
     lockBodyScroll();
@@ -1190,7 +1314,7 @@
       docSources.innerHTML = "";
       document.getElementById("followup-container").innerHTML = "";
 
-      responseContainer.innerHTML = "<p>DASH is Thinking...</p>";
+      showThinkingIndicator();
 
       try {
         let response = await fetch("/ask", {
@@ -1203,10 +1327,11 @@
           throw new Error(`Server error: ${response.status} ${response.statusText}`);
         }
 
+        const data = await response.json();
+
+        hideThinkingIndicator();
         responseContainer.innerHTML = "<p><strong>Answer:</strong></p><p id='chat-response'></p>";
         let chatResponse = document.getElementById("chat-response");
-
-        const data = await response.json();
 
         const answerText = data.answer || "";
         chatResponse.innerHTML = marked.parse(answerText);
@@ -1257,6 +1382,7 @@
 
         document.getElementById("user-input").value = "";
       } catch (error) {
+        hideThinkingIndicator();
         responseContainer.innerHTML = `<p style='color: red;'>Error: ${escapeHtml(error.message)}</p>`;
       }
     });
