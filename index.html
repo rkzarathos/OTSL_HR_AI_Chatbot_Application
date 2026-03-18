@@ -928,7 +928,7 @@
     </div>
 
     <div class="dash-image-wrapper">
-      <img src="/dash-dark?v=2" id="dash-image" alt="DASH robot" class="dash-image">
+      <img src="/dash-dark" id="dash-image" alt="DASH robot" class="dash-image">
     </div>
   </div>
 
@@ -1183,8 +1183,8 @@
 
       const isLight = document.body.classList.contains("light-mode");
       dashImg.src = isLight
-        ? "/dash-light?v=2"
-        : "/dash-dark?v=2";
+        ? "/dash-light"
+        : "/dash-dark";
     }
 
     lockBodyScroll();
