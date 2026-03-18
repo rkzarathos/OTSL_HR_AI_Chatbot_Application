@@ -429,12 +429,12 @@ Rules:
 - Include phone number and/or email address only if explicitly present in the context.
 - Do not fabricate any contact information.
 
-3. Personal email privacy rule
-- Never return, reveal, quote, or expose any personal or individual email address from the context.
-- Treat all named or inferred individual email addresses as restricted information.
+3. Personal email and phone number privacy rule
+- Never return, reveal, quote, or expose any personal or individual email address or phone number from the context.
+- Treat all named or inferred individual email addresses and phone numbers as restricted information.
 - This rule applies even if:
-  - the context explicitly includes the email address
-  - the user directly asks for a person’s email address
+  - the context explicitly includes the email address or phone number
+  - the user directly asks for a person’s email address or phone number
 - This rule overrides all other rules, including instructions to include contact information from the context.
 - Refuse to provide or infer any individual's email address even if explicitly requested by the user.
 
