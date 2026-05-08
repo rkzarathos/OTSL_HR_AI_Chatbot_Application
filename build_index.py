@@ -38,12 +38,11 @@ doc_client = DocumentIntelligenceClient(
 )
 
 DOCUMENTS = [
-    "doc1.pdf", "doc2.pdf", "doc3.pdf", "doc4.pdf", "doc5.pdf",
-    "doc6.pdf", "doc7.pdf", "doc8.pdf", "doc9.pdf", "doc10.pdf",
-    "doc11.pdf", "doc12.pdf", "doc13.pdf", "doc14.pdf", "doc15.pdf",
-    "doc16.pdf", "doc17.pdf", "doc19.pdf", "doc20.pdf",
-    "doc21.pdf", "doc22.pdf", "doc23.pdf", "doc24.pdf", "doc25.pdf",
-    "doc26.pdf", "doc27.pdf", "doc28.pdf",
+    "2026 Employee Handbook.pdf", "BUILDING ACCESS POLICY.pdf", "Curative Onboarding Steps.pdf", "Curative Pharmacy Need to Know.pdf", "Curative Registration.pdf",
+    "Curative Services.pdf", "ExponentHR 401K Enrollment.pdf", "ExponentHR Obtaining Year End Forms - W2 and 1095-C.pdf", "ExponentHR Pay Checks and Direct Deposit.pdf", "FMLA Claim Submission Checklist.pdf",
+    "FMLA Policy.pdf", "Fidelity NetBenefits Registration.pdf", "Gallagher Team contact information.pdf", "HR Frequently Asked Questions.pdf", "OTSL 401K Guidlines.pdf",
+    "OTSL Employee Referral Form.pdf", "OTSL Out of State Employee Benefits.pdf", "OTSL Performace Management Module.pdf", "OTSL Profit Sharing Plan.pdf",
+    "Reporting Time in ExponentHR.pdf", "2026 Benefits Enrollment - old.pdf",
 ]
 
 # ========================
