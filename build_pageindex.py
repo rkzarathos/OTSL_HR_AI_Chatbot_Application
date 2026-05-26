@@ -33,7 +33,7 @@ DOCUMENTS_DIR = Path(
 # Example App Service setting:
 # PAGEINDEX_MANIFEST_DIR=/pageindex_manifest
 PAGEINDEX_MANIFEST_DIR = Path(
-    os.getenv("PAGEINDEX_MANIFEST_DIR", "/pageindex_manifest")
+    os.getenv("PAGEINDEX_MANIFEST_DIR", "/pageindex-manifest")
 ).resolve()
 
 PAGEINDEX_MANIFEST_PATH = PAGEINDEX_MANIFEST_DIR / "pageindex_manifest.json"
