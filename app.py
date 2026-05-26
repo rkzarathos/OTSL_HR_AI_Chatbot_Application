@@ -377,7 +377,7 @@ vectorstore = Chroma(persist_directory=CHROMA_DB_PATH, embedding_function=embedd
 cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 PAGEINDEX_CONFIDENCE_THRESHOLD = 0.90
-PAGEINDEX_MANIFEST_DIR = os.getenv("PAGEINDEX_MANIFEST_DIR", "/pageindex_manifest")
+PAGEINDEX_MANIFEST_DIR = os.getenv("PAGEINDEX_MANIFEST_DIR", "/pageindex-manifest")
 PAGEINDEX_MANIFEST_PATH = os.path.join(PAGEINDEX_MANIFEST_DIR, "pageindex_manifest.json")
 PAGEINDEX_CONTEXT_CHAR_LIMIT = 14000
 
