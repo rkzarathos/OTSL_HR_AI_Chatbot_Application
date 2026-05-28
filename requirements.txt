@@ -20,5 +20,6 @@ azure-ai-documentintelligence
 azure-core
 azure-data-tables
 pageindex
-
+python-dotenv
+pypdf
 
