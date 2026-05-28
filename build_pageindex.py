@@ -14,6 +14,12 @@ from pypdf import PdfReader
 # CONFIG
 # ========================
 
+#try:
+#    from dotenv import load_dotenv
+#    load_dotenv()
+#except Exception:
+#    pass
+
 PAGEINDEX_API_KEY_1 = os.getenv("PAGEINDEX_API_KEY_1")
 PAGEINDEX_API_KEY_2 = os.getenv("PAGEINDEX_API_KEY_2")
 
@@ -29,21 +35,17 @@ DOCUMENTS_DIR = Path(
     os.getenv("DOCUMENTS_PATH", Path.cwd() / "documents")
 ).resolve()
 
-# Azure file share mount folder.
-# Example App Service setting:
-# PAGEINDEX_MANIFEST_DIR=/pageindex_manifest
 PAGEINDEX_MANIFEST_DIR = Path(
-    os.getenv("PAGEINDEX_MANIFEST_DIR", "/pageindex-manifest")
+    os.getenv("PAGEINDEX_MANIFEST_DIR", Path.cwd() / "pageindex-manifest")
 ).resolve()
 
 PAGEINDEX_MANIFEST_PATH = PAGEINDEX_MANIFEST_DIR / "pageindex_manifest.json"
 PAGEINDEX_TREES_DIR = PAGEINDEX_MANIFEST_DIR / "pageindex_trees"
 
-POLL_INTERVAL_SECONDS = 5
-MAX_POLLS_PER_DOCUMENT = 120  # 120 * 5 seconds = 10 minutes per document
-
 PRINT_TREES_TO_LOG = False
 
+POLL_INTERVAL_SECONDS = 5
+MAX_POLLS_PER_DOCUMENT = 120  # 10 minutes per document
 
 # ========================
 # DOCUMENT LIST
@@ -70,8 +72,6 @@ DOCUMENTS = [
     "OTSL Performace Management Module.pdf",
     "OTSL Profit Sharing Plan.pdf",
     "Reporting Time in ExponentHR.pdf",
-
-    # Kept because you said you want to keep this available just in case.
     "2026 Benefits Enrollment - old.pdf",
 ]
 
@@ -79,6 +79,15 @@ DOCUMENTS = [
 # ========================
 # HELPERS
 # ========================
+
+
+
+def get_pdf_page_count(pdf_path: Path) -> int:
+    try:
+        reader = PdfReader(str(pdf_path))
+        return len(reader.pages)
+    except Exception as e:
+        raise RuntimeError(f"Could not count pages for {pdf_path.name}: {e}")
 
 def utc_now_iso() -> str:
     return datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
@@ -89,18 +98,6 @@ def safe_filename(name: str) -> str:
         c if c.isalnum() or c in ("-", "_", ".") else "_"
         for c in name
     )
-
-
-def get_pdf_page_count(pdf_path: Path) -> int:
-    """
-    Counts PDF pages before submitting to PageIndex.
-    Used to switch API keys before key 1 crosses the page threshold.
-    """
-    try:
-        reader = PdfReader(str(pdf_path))
-        return len(reader.pages)
-    except Exception as e:
-        raise RuntimeError(f"Could not count pages for {pdf_path.name}: {e}")
 
 
 def extract_doc_id(submit_response: Any) -> str:
@@ -299,45 +296,45 @@ def main() -> None:
             )
             continue
 
-    try:
-        page_count = get_pdf_page_count(doc_path)
-    
-        if key_1_pages_used + page_count <= PAGEINDEX_KEY_1_PAGE_SWITCH_THRESHOLD:
-            selected_client = client_key_1
-            selected_key_label = "PAGEINDEX_API_KEY_1"
-            key_1_pages_used += page_count
-        else:
-            selected_client = client_key_2
-            selected_key_label = "PAGEINDEX_API_KEY_2"
-            key_2_pages_used += page_count
-    
-        print(
-            f"Using {selected_key_label} for {doc_name} "
-            f"({page_count} pages). "
-            f"Key1 pages used: {key_1_pages_used}, "
-            f"Key2 pages used: {key_2_pages_used}"
-        )
-    
-        doc_record = submit_and_save_document(
-            client=selected_client,
-            doc_path=doc_path,
-        )
-    
-        doc_record["page_count"] = page_count
-        doc_record["api_key_used"] = selected_key_label
-    
-        manifest["documents"].append(doc_record)
-        manifest["documents_submitted"] += 1
-    
-    except Exception as e:
-        print(f"ERROR: Failed PageIndex build for {doc_name}: {e}")
-        manifest["documents_failed"].append(
-            {
-                "doc_name": doc_name,
-                "doc_path": str(doc_path),
-                "error": str(e),
-            }
-        )
+        try:
+            page_count = get_pdf_page_count(doc_path)
+        
+            if key_1_pages_used + page_count <= PAGEINDEX_KEY_1_PAGE_SWITCH_THRESHOLD:
+                selected_client = client_key_1
+                selected_key_label = "PAGEINDEX_API_KEY_1"
+                key_1_pages_used += page_count
+            else:
+                selected_client = client_key_2
+                selected_key_label = "PAGEINDEX_API_KEY_2"
+                key_2_pages_used += page_count
+        
+            print(
+                f"Using {selected_key_label} for {doc_name} "
+                f"({page_count} pages). "
+                f"Key1 pages used: {key_1_pages_used}, "
+                f"Key2 pages used: {key_2_pages_used}"
+            )
+        
+            doc_record = submit_and_save_document(
+                client=selected_client,
+                doc_path=doc_path,
+            )
+        
+            doc_record["page_count"] = page_count
+            doc_record["api_key_used"] = selected_key_label
+        
+            manifest["documents"].append(doc_record)
+            manifest["documents_submitted"] += 1
+        
+        except Exception as e:
+            print(f"ERROR: Failed PageIndex build for {doc_name}: {e}")
+            manifest["documents_failed"].append(
+                {
+                    "doc_name": doc_name,
+                    "doc_path": str(doc_path),
+                    "error": str(e),
+                }
+            )
 
     manifest["key_1_pages_used"] = key_1_pages_used
     manifest["key_2_pages_used"] = key_2_pages_used
