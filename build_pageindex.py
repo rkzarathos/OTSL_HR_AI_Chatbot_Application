@@ -20,14 +20,10 @@ from pypdf import PdfReader
 #except Exception:
 #    pass
 
-PAGEINDEX_API_KEY_1 = os.getenv("PAGEINDEX_API_KEY_1")
-PAGEINDEX_API_KEY_2 = os.getenv("PAGEINDEX_API_KEY_2")
+PAGEINDEX_API_KEY = os.getenv("PAGEINDEX_API_KEY")
 
-if not PAGEINDEX_API_KEY_1:
-    raise ValueError("PAGEINDEX_API_KEY_1 environment variable is not set.")
-
-if not PAGEINDEX_API_KEY_2:
-    raise ValueError("PAGEINDEX_API_KEY_2 environment variable is not set.")
+if not PAGEINDEX_API_KEY:
+    raise ValueError("PAGEINDEX_API_KEY environment variable is not set.")
 
 PAGEINDEX_KEY_1_PAGE_SWITCH_THRESHOLD = 150
 
@@ -79,15 +75,6 @@ DOCUMENTS = [
 # ========================
 # HELPERS
 # ========================
-
-
-
-def get_pdf_page_count(pdf_path: Path) -> int:
-    try:
-        reader = PdfReader(str(pdf_path))
-        return len(reader.pages)
-    except Exception as e:
-        raise RuntimeError(f"Could not count pages for {pdf_path.name}: {e}")
 
 def utc_now_iso() -> str:
     return datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
@@ -256,11 +243,7 @@ def main() -> None:
     PAGEINDEX_MANIFEST_DIR.mkdir(parents=True, exist_ok=True)
     PAGEINDEX_TREES_DIR.mkdir(parents=True, exist_ok=True)
 
-    client_key_1 = PageIndexClient(api_key=PAGEINDEX_API_KEY_1)
-    client_key_2 = PageIndexClient(api_key=PAGEINDEX_API_KEY_2)
-    
-    key_1_pages_used = 0
-    key_2_pages_used = 0
+    client = PageIndexClient(api_key=PAGEINDEX_API_KEY)
 
     manifest: Dict[str, Any] = {
         "built_at_utc": utc_now_iso(),
@@ -272,9 +255,7 @@ def main() -> None:
         "documents_missing": [],
         "documents_failed": [],
         "documents": [],
-        "api_key_page_switch_threshold": PAGEINDEX_KEY_1_PAGE_SWITCH_THRESHOLD,
-        "key_1_pages_used": 0,
-        "key_2_pages_used": 0,
+        "api_key_used": "PAGEINDEX_API_KEY",
     }
 
     for doc_name in DOCUMENTS:
@@ -297,48 +278,30 @@ def main() -> None:
             continue
 
         try:
-            page_count = get_pdf_page_count(doc_path)
-        
-            if key_1_pages_used + page_count <= PAGEINDEX_KEY_1_PAGE_SWITCH_THRESHOLD:
-                selected_client = client_key_1
-                selected_key_label = "PAGEINDEX_API_KEY_1"
-                key_1_pages_used += page_count
-            else:
-                selected_client = client_key_2
-                selected_key_label = "PAGEINDEX_API_KEY_2"
-                key_2_pages_used += page_count
-        
-            print(
-                f"Using {selected_key_label} for {doc_name} "
-                f"({page_count} pages). "
-                f"Key1 pages used: {key_1_pages_used}, "
-                f"Key2 pages used: {key_2_pages_used}"
-            )
+            print(f"Using PAGEINDEX_API_KEY for {doc_name}", flush=True)
         
             doc_record = submit_and_save_document(
-                client=selected_client,
+                client=client,
                 doc_path=doc_path,
             )
         
-            doc_record["page_count"] = page_count
-            doc_record["api_key_used"] = selected_key_label
+            doc_record["api_key_used"] = "PAGEINDEX_API_KEY"
         
             manifest["documents"].append(doc_record)
             manifest["documents_submitted"] += 1
         
         except Exception as e:
-            print(f"ERROR: Failed PageIndex build for {doc_name}: {e}")
+            print(f"ERROR: Failed PageIndex build for {doc_name}: {e}", flush=True)
             manifest["documents_failed"].append(
                 {
                     "doc_name": doc_name,
                     "doc_path": str(doc_path),
                     "error": str(e),
+                    "api_key_attempted": "PAGEINDEX_API_KEY",
                 }
             )
+            
 
-    manifest["key_1_pages_used"] = key_1_pages_used
-    manifest["key_2_pages_used"] = key_2_pages_used
-    manifest["total_pages_submitted"] = key_1_pages_used + key_2_pages_used
 
     with PAGEINDEX_MANIFEST_PATH.open("w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
