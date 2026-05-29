@@ -929,7 +929,7 @@
     </div>
 
     <div class="dash-image-wrapper">
-      <img src="/dash-dark" id="dash-image" alt="DASH robot" class="dash-image">
+      <img src="/dash-logo" id="dash-image" alt="DASH logo" class="dash-image">
     </div>
   </div>
 
@@ -1181,27 +1181,14 @@
     function syncDashImage() {
       const dashImg = document.getElementById("dash-image");
       if (!dashImg) return;
-
-      const isLight = document.body.classList.contains("light-mode");
-      dashImg.src = isLight
-        ? "/dash-light"
-        : "/dash-dark";
+    
+      dashImg.src = "/dash-logo";
     }
 
     lockBodyScroll();
 
     document.querySelector(".theme-toggle").addEventListener("click", function() {
       document.body.classList.toggle("light-mode");
-
-      const dashImg = document.getElementById("dash-image");
-      if (dashImg) {
-        dashImg.style.opacity = 0;
-
-        setTimeout(() => {
-          syncDashImage();
-          dashImg.style.opacity = 1;
-        }, 120);
-      }
     });
 
     const topbarShell = document.getElementById("topbar-shell");
